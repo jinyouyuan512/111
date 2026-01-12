@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录状态测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .status-card {
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border-left: 4px solid #6c757d;
+        }
+        .status-card.success {
+            background: #f0fff4;
+            border-left-color: #38a169;
+        }
+        .status-card.error {
+            background: #fff5f5;
+            border-left-color: #e53e3e;
+        }
+        .status-card h3 {
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        .status-card p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #4a5568;
+        }
+        .status-card code {
+            background: rgba(0,0,0,0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        .btn-secondary {
+            background: #718096;
+        }
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: #f7fafc;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #4a5568;
+        }
+        .info-value {
+            color: #2d3748;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 登录状态测试</h1>
+
+        <div id="loginStatus" class="status-card">
+            <h3>检查中...</h3>
+        </div>
+
+        <div id="tokenInfo" style="display: none;">
+            <h3 style="margin-bottom: 15px;">Token 信息</h3>
+            <div class="info-item">
+                <span class="info-label">Token 存在：</span>
+                <span class="info-value" id="hasToken">-</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Token 长度：</span>
+                <span class="info-value" id="tokenLength">-</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">UserInfo 存在：</span>
+                <span class="info-value" id="hasUserInfo">-</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">用户名：</span>
+                <span class="info-value" id="username">-</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">用户ID：</span>
+                <span class="info-value" id="userId">-</span>
+            </div>
+        </div>
+
+        <button class="btn" onclick="checkLoginState()">重新检查</button>
+        <button class="btn btn-secondary" onclick="goToLogin()">去登录</button>
+        <button class="btn btn-secondary" onclick="goToCreative()">去众创空间</button>
+    </div>
+
+    <script>
+        function checkLoginState() {
+            const token = localStorage.getItem('token');
+            const userInfoStr = localStorage.getItem('userInfo');
+            const statusDiv = document.getElementById('loginStatus');
+            const tokenInfoDiv = document.getElementById('tokenInfo');
+
+            let userInfo = null;
+            if (userInfoStr) {
+                try {
+                    userInfo = JSON.parse(userInfoStr);
+                } catch (e) {
+                    console.error('Failed to parse userInfo', e);
+                }
+            }
+
+            // 更新状态卡片
+            if (token && userInfo) {
+                statusDiv.className = 'status-card success';
+                statusDiv.innerHTML = `
+                    <h3>✅ 已登录</h3>
+                    <p>Token 和用户信息都存在</p>
+                    <p><code>isLoggedIn</code> 应该返回 <code>true</code></p>
+                `;
+            } else if (token && !userInfo) {
+                statusDiv.className = 'status-card error';
+                statusDiv.innerHTML = `
+                    <h3>⚠️ 部分登录</h3>
+                    <p>Token 存在但用户信息缺失</p>
+                    <p><code>isLoggedIn</code> 会返回 <code>false</code></p>
+                    <p style="margin-top: 10px; color: #e53e3e;">建议：重新登录</p>
+                `;
+            } else if (!token && userInfo) {
+                statusDiv.className = 'status-card error';
+                statusDiv.innerHTML = `
+                    <h3>⚠️ 部分登录</h3>
+                    <p>用户信息存在但 Token 缺失</p>
+                    <p><code>isLoggedIn</code> 会返回 <code>false</code></p>
+                    <p style="margin-top: 10px; color: #e53e3e;">建议：重新登录</p>
+                `;
+            } else {
+                statusDiv.className = 'status-card error';
+                statusDiv.innerHTML = `
+                    <h3>❌ 未登录</h3>
+                    <p>Token 和用户信息都不存在</p>
+                    <p><code>isLoggedIn</code> 会返回 <code>false</code></p>
+                    <p style="margin-top: 10px; color: #e53e3e;">请先登录</p>
+                `;
+            }
+
+            // 更新详细信息
+            if (token || userInfo) {
+                tokenInfoDiv.style.display = 'block';
+                document.getElementById('hasToken').textContent = token ? '✅ 是' : '❌ 否';
+                document.getElementById('tokenLength').textContent = token ? token.length + ' 字符' : '-';
+                document.getElementById('hasUserInfo').textContent = userInfo ? '✅ 是' : '❌ 否';
+                document.getElementById('username').textContent = userInfo?.username || '-';
+                document.getElementById('userId').textContent = userInfo?.id || '-';
+            } else {
+                tokenInfoDiv.style.display = 'none';
+            }
+        }
+
+        function goToLogin() {
+            window.location.href = 'http://localhost:3001/login';
+        }
+
+        function goToCreative() {
+            window.location.href = 'http://localhost:3001/creative';
+        }
+
+        // 页面加载时自动检查
+        window.addEventListener('load', checkLoginState);
+    </script>
+</body>
+</html>

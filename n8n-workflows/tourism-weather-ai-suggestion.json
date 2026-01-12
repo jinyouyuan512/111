@@ -1,0 +1,143 @@
+{
+  "name": "智慧旅游 - 天气查询+AI出行建议",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/weather",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      },
+      "id": "webhook-weather",
+      "name": "Webhook 天气查询",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst spots = body.spots || ['西柏坡纪念馆'];\nconst date = body.date || new Date().toISOString().split('T')[0];\n\nconst spotCityMap = {\n  '西柏坡纪念馆': 'Shijiazhuang',\n  '狼牙山五壮士纪念地': 'Baoding',\n  '冉庄地道战遗址': 'Baoding',\n  '李大钊纪念馆': 'Tangshan',\n  '白洋淀雁翎队纪念馆': 'Baoding',\n  '塞罕坝展览馆': 'Chengde',\n  '八路军一二九师司令部': 'Handan',\n  '石家庄解放纪念馆': 'Shijiazhuang'\n};\n\nconst firstSpot = spots[0];\nconst city = spotCityMap[firstSpot] || 'Shijiazhuang';\n\nreturn { spots, city, date, spotCityMap };"
+      },
+      "id": "prepare-request",
+      "name": "准备请求参数",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.worldweatheronline.com/premium/v1/weather.ashx",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "key", "value": "8361c49d6dcd417c855134458261001" },
+            { "name": "q", "value": "={{ $json.city }}" },
+            { "name": "format", "value": "json" },
+            { "name": "num_of_days", "value": "3" },
+            { "name": "lang", "value": "zh" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "weather-api",
+      "name": "调用天气API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [700, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const prepareData = $('准备请求参数').first().json;\nconst apiResponse = $input.first().json;\nconst spots = prepareData.spots;\nconst spotCityMap = prepareData.spotCityMap;\n\nconst weatherList = [];\nlet weatherSummary = '';\n\nif (apiResponse.data && apiResponse.data.current_condition) {\n  const current = apiResponse.data.current_condition[0];\n  const forecast = apiResponse.data.weather || [];\n  \n  for (const spot of spots) {\n    const todayForecast = forecast[0] || {};\n    let condition = '晴';\n    if (current.lang_zh && current.lang_zh[0]) {\n      condition = current.lang_zh[0].value;\n    } else if (current.weatherDesc && current.weatherDesc[0]) {\n      condition = current.weatherDesc[0].value;\n    }\n    \n    const weatherData = {\n      spotName: spot,\n      city: spotCityMap[spot] || '石家庄',\n      date: todayForecast.date || new Date().toISOString().split('T')[0],\n      condition: condition,\n      temperature: {\n        current: parseInt(current.temp_C) || 10,\n        min: parseInt(todayForecast.mintempC) || 5,\n        max: parseInt(todayForecast.maxtempC) || 15\n      },\n      humidity: parseInt(current.humidity) || 50,\n      windSpeed: parseInt(current.windspeedKmph) || 10,\n      feelsLike: parseInt(current.FeelsLikeC) || 10,\n      uvIndex: parseInt(current.uvIndex) || 3\n    };\n    weatherList.push(weatherData);\n  }\n  \n  // 生成天气摘要供AI使用\n  const w = weatherList[0];\n  weatherSummary = `景点：${spots.join('、')}\\n日期：${w.date}\\n天气：${w.condition}\\n温度：${w.temperature.min}°C ~ ${w.temperature.max}°C\\n体感温度：${w.feelsLike}°C\\n湿度：${w.humidity}%\\n风速：${w.windSpeed}km/h\\n紫外线指数：${w.uvIndex}`;\n} else {\n  // 模拟数据\n  for (const spot of spots) {\n    const conditions = ['晴', '多云', '阴'];\n    const condition = conditions[Math.floor(Math.random() * conditions.length)];\n    const maxTemp = Math.floor(Math.random() * 15) + 5;\n    weatherList.push({\n      spotName: spot,\n      city: spotCityMap[spot] || '石家庄',\n      date: new Date().toISOString().split('T')[0],\n      condition: condition,\n      temperature: { current: maxTemp - 3, min: maxTemp - 8, max: maxTemp },\n      humidity: Math.floor(Math.random() * 30) + 40,\n      windSpeed: Math.floor(Math.random() * 15) + 5,\n      dataSource: 'mock'\n    });\n  }\n  const w = weatherList[0];\n  weatherSummary = `景点：${spots.join('、')}\\n日期：${w.date}\\n天气：${w.condition}\\n温度：${w.temperature.min}°C ~ ${w.temperature.max}°C\\n湿度：${w.humidity}%`;\n}\n\nreturn { weatherList, weatherSummary, spots };"
+      },
+      "id": "process-weather",
+      "name": "处理天气数据",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [950, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-3.5-turbo",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "你是一个专业的河北红色旅游出行顾问。根据天气情况，为游客提供简洁实用的出行建议。回复要求：\n1. 简洁明了，不超过150字\n2. 包含穿衣建议、出行时间建议、注意事项\n3. 针对红色景点特点给出建议\n4. 使用emoji让建议更生动"
+            },
+            {
+              "role": "user",
+              "content": "=请根据以下天气信息，给出出行建议：\n\n{{ $json.weatherSummary }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 300
+        }
+      },
+      "id": "ai-suggestion",
+      "name": "AI生成出行建议",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1,
+      "position": [1200, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-credentials",
+          "name": "OpenAI API"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const weatherData = $('处理天气数据').first().json;\nconst aiResponse = $input.first().json;\n\nlet aiSuggestion = '';\n\n// 尝试获取AI建议\nif (aiResponse && aiResponse.message && aiResponse.message.content) {\n  aiSuggestion = aiResponse.message.content;\n} else if (aiResponse && aiResponse.text) {\n  aiSuggestion = aiResponse.text;\n} else {\n  // AI调用失败，使用规则生成建议\n  const w = weatherData.weatherList[0];\n  const condition = w.condition;\n  const maxTemp = w.temperature.max;\n  const minTemp = w.temperature.min;\n  \n  let suggestion = '';\n  \n  if (condition.includes('雨')) {\n    suggestion = `☔ 今日有雨，建议携带雨具。\\n👔 穿着防水外套和防滑鞋。\\n⏰ 建议选择室内展馆参观。\\n📸 雨中景色别有韵味，可拍摄特色照片。`;\n  } else if (condition.includes('雪')) {\n    suggestion = `❄️ 今日有雪，道路可能湿滑。\\n🧥 注意保暖，穿厚外套和防滑鞋。\\n⏰ 建议上午10点后出行。\\n⚠️ 山区景点谨慎前往。`;\n  } else if (maxTemp > 30) {\n    suggestion = `🌡️ 今日气温较高(${maxTemp}°C)。\\n👕 穿着轻薄透气衣物。\\n💧 多补充水分，注意防暑。\\n⏰ 建议早晚出行，避开正午。`;\n  } else if (minTemp < 5) {\n    suggestion = `🧣 今日气温较低(${minTemp}~${maxTemp}°C)。\\n🧥 穿着保暖外套，戴帽子手套。\\n☕ 可携带保温杯。\\n⏰ 建议中午前后出行。`;\n  } else if (condition.includes('晴')) {\n    suggestion = `☀️ 今日天气晴好，非常适合出行！\\n👔 穿着舒适，可带薄外套。\\n🕶️ 建议携带太阳镜和防晒用品。\\n📸 光线充足，适合拍照留念。`;\n  } else {\n    suggestion = `🌤️ 今日天气适宜出行。\\n👔 建议穿着舒适的休闲装。\\n🎒 携带少量饮水和零食。\\n📱 提前查看景点开放时间。`;\n  }\n  \n  aiSuggestion = suggestion;\n}\n\n// 为每个景点添加建议\nconst weatherWithSuggestion = weatherData.weatherList.map(w => ({\n  ...w,\n  suggestion: aiSuggestion\n}));\n\nreturn {\n  success: true,\n  queryTime: new Date().toISOString(),\n  weather: weatherWithSuggestion,\n  aiSuggestion: aiSuggestion,\n  spots: weatherData.spots\n};"
+      },
+      "id": "format-response",
+      "name": "格式化最终响应",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond",
+      "name": "返回响应",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1700, 300]
+    }
+  ],
+  "connections": {
+    "Webhook 天气查询": {
+      "main": [[{ "node": "准备请求参数", "type": "main", "index": 0 }]]
+    },
+    "准备请求参数": {
+      "main": [[{ "node": "调用天气API", "type": "main", "index": 0 }]]
+    },
+    "调用天气API": {
+      "main": [[{ "node": "处理天气数据", "type": "main", "index": 0 }]]
+    },
+    "处理天气数据": {
+      "main": [[{ "node": "AI生成出行建议", "type": "main", "index": 0 }]]
+    },
+    "AI生成出行建议": {
+      "main": [[{ "node": "格式化最终响应", "type": "main", "index": 0 }]]
+    },
+    "格式化最终响应": {
+      "main": [[{ "node": "返回响应", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

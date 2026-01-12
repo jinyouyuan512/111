@@ -1,0 +1,110 @@
+{
+  "name": "智慧旅游-AI路线规划(数据库)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/ai-plan",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "e1f2a3b4-1111-2222-3333-444455556666",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, name, description, address, ticket_price, opening_hours, visit_duration, rating, latitude, longitude, category, history, highlights, tips FROM attraction WHERE status = 'open' AND category = '革命遗址' ORDER BY rating DESC",
+        "options": {}
+      },
+      "id": "e1f2a3b4-2222-3333-4444-555566667777",
+      "name": "MySQL获取景点",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.3,
+      "position": [450, 300],
+      "credentials": {
+        "mySql": {
+          "id": "YOUR_MYSQL_CREDENTIAL_ID",
+          "name": "MySQL jiyi_tourism"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-3.5-turbo",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "你是一位专业的河北红色旅游规划师，请根据用户选择的景点和天数，生成详细的行程规划。要考虑景点之间的距离、游览时间、餐饮住宿等因素。"
+            },
+            {
+              "role": "user",
+              "content": "请为以下行程生成详细规划：\n\n选择的景点：{{ $('Webhook').first().json.body.spots.join('、') }}\n行程天数：{{ $('Webhook').first().json.body.duration || 1 }}天\n出发日期：{{ $('Webhook').first().json.body.startDate || '明天' }}\n\n可选景点信息：\n{{ $json.map(s => `- ${s.name}: ${s.description}, 门票${s.ticket_price}元, 建议游览${Math.round(s.visit_duration/60)}小时`).join('\\n') }}\n\n请按JSON格式返回行程规划，包含每天的景点安排、时间、餐饮建议、注意事项等。"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "id": "e1f2a3b4-3333-4444-5555-666677778888",
+      "name": "OpenAI规划行程",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.3,
+      "position": [650, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Webhook').first().json.body || {};\nconst allSpots = $('MySQL获取景点').all().map(s => s.json);\nconst aiResponse = $('OpenAI规划行程').first().json;\n\nconst selectedNames = input.spots || [];\nconst duration = input.duration || 1;\nconst startDate = input.startDate || new Date().toISOString().split('T')[0];\n\n// 匹配选中的景点\nconst selectedSpots = [];\nfor (const name of selectedNames) {\n  const found = allSpots.find(s => s.name.includes(name) || name.includes(s.name));\n  if (found) selectedSpots.push(found);\n}\nconst spots = selectedSpots.length > 0 ? selectedSpots : allSpots.slice(0, 3);\n\nlet plan = null;\n\ntry {\n  // 尝试解析AI返回的JSON\n  const content = aiResponse.message?.content || aiResponse.text || '';\n  const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    plan = JSON.parse(jsonMatch[0]);\n  }\n} catch (e) {\n  // AI解析失败，使用默认规划\n}\n\nif (!plan) {\n  // 生成默认行程\n  const spotsPerDay = Math.ceil(spots.length / duration);\n  const days = [];\n  let totalCost = 0;\n  let totalDistance = 0;\n\n  for (let d = 0; d < duration; d++) {\n    const daySpots = spots.slice(d * spotsPerDay, (d + 1) * spotsPerDay);\n    const date = new Date(startDate);\n    date.setDate(date.getDate() + d);\n    \n    const spotPlans = daySpots.map((spot, idx) => {\n      totalCost += parseFloat(spot.ticket_price) || 0;\n      const hour = 9 + idx * 3;\n      return {\n        order: idx + 1,\n        name: spot.name,\n        duration: Math.round((spot.visit_duration || 120) / 60) + '小时',\n        tips: spot.tips || (spot.ticket_price > 0 ? `门票${spot.ticket_price}元` : '免费参观需预约'),\n        arrivalTime: `${hour.toString().padStart(2, '0')}:00`,\n        departureTime: `${(hour + 2).toString().padStart(2, '0')}:00`,\n        address: spot.address,\n        rating: spot.rating\n      };\n    });\n    \n    if (daySpots.length > 1) totalDistance += daySpots.length * 30;\n    \n    days.push({\n      day: d + 1,\n      date: date.toISOString().split('T')[0],\n      spots: spotPlans,\n      meals: ['午餐：当地特色餐厅', '晚餐：酒店餐厅'],\n      accommodation: d < duration - 1 ? '当地三星级酒店' : null\n    });\n    \n    totalCost += 100;\n    if (d < duration - 1) totalCost += 300;\n  }\n\n  plan = {\n    title: `${spots[0]?.name || '红色景点'}${spots.length > 1 ? '等' + spots.length + '景点' : ''}${duration}日游`,\n    description: '为您精心规划的河北红色之旅，重温革命历史，传承红色基因',\n    days: days,\n    totalDistance: totalDistance,\n    estimatedCost: totalCost,\n    tips: [\n      '携带身份证件，部分景区需要实名登记',\n      '穿舒适的鞋子，部分景区需要步行',\n      '提前预约免费景点，避免排队',\n      '注意天气变化，做好防晒或防雨准备'\n    ]\n  };\n}\n\nreturn [{ json: { success: true, plan: plan, generatedBy: 'AI' } }];"
+      },
+      "id": "e1f2a3b4-4444-5555-6666-777788889999",
+      "name": "格式化结果",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      },
+      "id": "e1f2a3b4-5555-6666-7777-888899990000",
+      "name": "响应",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "MySQL获取景点", "type": "main", "index": 0 }]] },
+    "MySQL获取景点": { "main": [[{ "node": "OpenAI规划行程", "type": "main", "index": 0 }]] },
+    "OpenAI规划行程": { "main": [[{ "node": "格式化结果", "type": "main", "index": 0 }]] },
+    "格式化结果": { "main": [[{ "node": "响应", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { 
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "instanceId": "local"
+  }
+}

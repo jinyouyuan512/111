@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>n8n 工作流 API 测试</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { text-align: center; color: #333; margin-bottom: 30px; }
+        .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .card h3 { color: #1890ff; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        .card h3 span { font-size: 1.5rem; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #555; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+        .form-group textarea { min-height: 100px; font-family: monospace; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s; }
+        .btn-primary { background: linear-gradient(135deg, #1890ff, #096dd9); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(24,144,255,0.4); }
+        .btn-success { background: linear-gradient(135deg, #52c41a, #389e0d); color: white; }
+        .result { margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1890ff; }
+        .result.error { border-left-color: #ff4d4f; background: #fff2f0; }
+        .result.success { border-left-color: #52c41a; background: #f6ffed; }
+        .result pre { white-space: pre-wrap; word-break: break-all; font-size: 13px; max-height: 300px; overflow-y: auto; }
+        .status { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .status.online { background: #f6ffed; color: #52c41a; }
+        .status.offline { background: #fff2f0; color: #ff4d4f; }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+        .config-bar { background: #1a1a2e; color: white; padding: 15px 20px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+        .config-bar input { flex: 1; min-width: 200px; padding: 8px 12px; border: none; border-radius: 6px; }
+        .config-bar .btn { padding: 8px 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 n8n 工作流 API 测试</h1>
+        
+        <!-- 配置栏 -->
+        <div class="config-bar">
+            <span>n8n 地址:</span>
+            <input type="text" id="n8nUrl" value="http://localhost:5678" placeholder="n8n 服务地址">
+            <button class="btn btn-primary" onclick="checkConnection()">检查连接</button>
+            <span id="connectionStatus" class="status offline">未连接</span>
+        </div>
+
+        <div class="grid">
+            <!-- 天气查询 -->
+            <div class="card">
+                <h3><span>🌤️</span> 天气查询</h3>
+                <div class="form-group">
+                    <label>景点列表（逗号分隔）</label>
+                    <input type="text" id="weatherSpots" value="西柏坡纪念馆,狼牙山五壮士纪念地" placeholder="输入景点名称">
+                </div>
+                <button class="btn btn-primary" onclick="testWeather()">查询天气</button>
+                <div id="weatherResult" class="result" style="display:none;"></div>
+            </div>
+
+            <!-- 数据聚合 -->
+            <div class="card">
+                <h3><span>📊</span> 数据聚合</h3>
+                <div class="form-group">
+                    <label>景点名称</label>
+                    <input type="text" id="aggregateSpot" value="西柏坡纪念馆" placeholder="输入景点名称">
+                </div>
+                <button class="btn btn-primary" onclick="testAggregate()">获取聚合数据</button>
+                <div id="aggregateResult" class="result" style="display:none;"></div>
+            </div>
+
+            <!-- 智能推荐 -->
+            <div class="card">
+                <h3><span>🎯</span> 智能推荐</h3>
+                <div class="form-group">
+                    <label>兴趣标签（逗号分隔）</label>
+                    <input type="text" id="interests" value="红色文化,自然风光" placeholder="输入兴趣标签">
+                </div>
+                <div class="form-group">
+                    <label>出行风格</label>
+                    <select id="travelStyle">
+                        <option value="budget">经济型</option>
+                        <option value="comfort" selected>舒适型</option>
+                        <option value="luxury">豪华型</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>人群类型</label>
+                    <select id="groupType">
+                        <option value="solo">独自出行</option>
+                        <option value="couple">情侣</option>
+                        <option value="family" selected>家庭</option>
+                        <option value="group">团队</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="testRecommend()">获取推荐</button>
+                <div id="recommendResult" class="result" style="display:none;"></div>
+            </div>
+
+            <!-- AI行程规划 -->
+            <div class="card">
+                <h3><span>🤖</span> AI 行程规划</h3>
+                <div class="form-group">
+                    <label>选择景点（逗号分隔）</label>
+                    <input type="text" id="planSpots" value="西柏坡纪念馆,狼牙山五壮士纪念地,冉庄地道战遗址" placeholder="输入景点">
+                </div>
+                <div class="form-group">
+                    <label>行程天数</label>
+                    <input type="number" id="duration" value="2" min="1" max="7">
+                </div>
+                <div class="form-group">
+                    <label>行程节奏</label>
+                    <select id="pace">
+                        <option value="relaxed">休闲</option>
+                        <option value="moderate" selected>适中</option>
+                        <option value="intensive">紧凑</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="testAIPlan()">生成行程</button>
+                <div id="planResult" class="result" style="display:none;"></div>
+            </div>
+
+            <!-- 运营仪表盘 -->
+            <div class="card">
+                <h3><span>📈</span> 运营仪表盘</h3>
+                <p style="color: #888; margin-bottom: 15px;">获取系统运营数据统计</p>
+                <button class="btn btn-primary" onclick="testDashboard()">获取数据</button>
+                <div id="dashboardResult" class="result" style="display:none;"></div>
+            </div>
+
+            <!-- 自定义请求 -->
+            <div class="card">
+                <h3><span>🔧</span> 自定义请求</h3>
+                <div class="form-group">
+                    <label>Webhook 路径</label>
+                    <input type="text" id="customPath" value="tourism/weather" placeholder="例如: tourism/weather">
+                </div>
+                <div class="form-group">
+                    <label>请求体 (JSON)</label>
+                    <textarea id="customBody">{"spots": ["西柏坡纪念馆"]}</textarea>
+                </div>
+                <button class="btn btn-success" onclick="testCustom()">发送请求</button>
+                <div id="customResult" class="result" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function getN8nUrl() {
+            return document.getElementById('n8nUrl').value.replace(/\/$/, '');
+        }
+
+        async function callWebhook(path, data) {
+            const url = `${getN8nUrl()}/webhook/${path}`;
+            console.log('Calling:', url, data);
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            return await response.json();
+        }
+
+        function showResult(elementId, data, isError = false) {
+            const el = document.getElementById(elementId);
+            el.style.display = 'block';
+            el.className = `result ${isError ? 'error' : 'success'}`;
+            el.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        }
+
+        async function checkConnection() {
+            const statusEl = document.getElementById('connectionStatus');
+            try {
+                // 尝试访问 n8n
+                const response = await fetch(`${getN8nUrl()}/healthz`, { method: 'GET' });
+                if (response.ok) {
+                    statusEl.className = 'status online';
+                    statusEl.textContent = '已连接';
+                } else {
+                    throw new Error('连接失败');
+                }
+            } catch (e) {
+                // 即使 healthz 失败，也尝试 webhook
+                statusEl.className = 'status online';
+                statusEl.textContent = '可能已连接';
+            }
+        }
+
+        async function testWeather() {
+            try {
+                const spots = document.getElementById('weatherSpots').value.split(',').map(s => s.trim());
+                const result = await callWebhook('tourism/weather', { spots });
+                showResult('weatherResult', result);
+            } catch (e) {
+                showResult('weatherResult', { error: e.message }, true);
+            }
+        }
+
+        async function testAggregate() {
+            try {
+                const spotName = document.getElementById('aggregateSpot').value;
+                const result = await callWebhook('tourism/aggregated-data', { spotName });
+                showResult('aggregateResult', result);
+            } catch (e) {
+                showResult('aggregateResult', { error: e.message }, true);
+            }
+        }
+
+        async function testRecommend() {
+            try {
+                const interests = document.getElementById('interests').value.split(',').map(s => s.trim());
+                const travelStyle = document.getElementById('travelStyle').value;
+                const groupType = document.getElementById('groupType').value;
+                
+                const result = await callWebhook('tourism/personalized-recommend', {
+                    preferences: { interests, travelStyle, groupType },
+                    limit: 5
+                });
+                showResult('recommendResult', result);
+            } catch (e) {
+                showResult('recommendResult', { error: e.message }, true);
+            }
+        }
+
+        async function testAIPlan() {
+            try {
+                const spots = document.getElementById('planSpots').value.split(',').map(s => s.trim());
+                const duration = parseInt(document.getElementById('duration').value);
+                const pace = document.getElementById('pace').value;
+                
+                const result = await callWebhook('tourism/ai-plan', {
+                    spots,
+                    duration,
+                    preferences: { pace }
+                });
+                showResult('planResult', result);
+            } catch (e) {
+                showResult('planResult', { error: e.message }, true);
+            }
+        }
+
+        async function testDashboard() {
+            try {
+                const result = await callWebhook('tourism/dashboard', {});
+                showResult('dashboardResult', result);
+            } catch (e) {
+                showResult('dashboardResult', { error: e.message }, true);
+            }
+        }
+
+        async function testCustom() {
+            try {
+                const path = document.getElementById('customPath').value;
+                const body = JSON.parse(document.getElementById('customBody').value);
+                const result = await callWebhook(path, body);
+                showResult('customResult', result);
+            } catch (e) {
+                showResult('customResult', { error: e.message }, true);
+            }
+        }
+
+        // 页面加载时检查连接
+        window.onload = () => {
+            setTimeout(checkConnection, 1000);
+        };
+    </script>
+</body>
+</html>

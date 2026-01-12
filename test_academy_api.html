@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>传承学院 API 测试</title>
+    <style>
+        body { font-family: 'Microsoft YaHei', sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        h1 { color: #c41e3a; text-align: center; }
+        .section { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .section h2 { color: #333; border-bottom: 2px solid #c41e3a; padding-bottom: 10px; }
+        button { background: #c41e3a; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #a0182f; }
+        .result { background: #f9f9f9; padding: 15px; border-radius: 4px; margin-top: 10px; max-height: 400px; overflow-y: auto; }
+        .news-item, .book-item { border-bottom: 1px solid #eee; padding: 10px 0; }
+        .news-item:last-child, .book-item:last-child { border-bottom: none; }
+        .title { font-weight: bold; color: #333; }
+        .meta { color: #999; font-size: 0.9em; margin-top: 5px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.8em; margin-right: 5px; }
+        .badge.hot { background: #fff5f5; color: #c41e3a; }
+        .badge.top { background: #c41e3a; color: white; }
+        .badge.recommend { background: #fff8e1; color: #f5a623; }
+        .rating { color: #f5a623; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>📚 河北红色新闻与读物 - API 测试</h1>
+    
+    <div class="section">
+        <h2>📰 红色新闻 API</h2>
+        <button onclick="loadNews()">获取新闻列表</button>
+        <button onclick="loadHotNews()">获取热门新闻</button>
+        <button onclick="searchNews('西柏坡')">搜索"西柏坡"</button>
+        <div id="news-result" class="result">点击按钮测试...</div>
+    </div>
+    
+    <div class="section">
+        <h2>📖 红色读物 API</h2>
+        <button onclick="loadBooks()">获取书籍列表</button>
+        <button onclick="loadRecommendedBooks()">获取推荐书籍</button>
+        <button onclick="searchBooks('白洋淀')">搜索"白洋淀"</button>
+        <div id="books-result" class="result">点击按钮测试...</div>
+    </div>
+    
+    <div class="section">
+        <h2>🔗 API 端点信息</h2>
+        <ul>
+            <li><strong>新闻列表:</strong> GET /api/academy/news</li>
+            <li><strong>热门新闻:</strong> GET /api/academy/news/hot</li>
+            <li><strong>搜索新闻:</strong> GET /api/academy/news/search?keyword=xxx</li>
+            <li><strong>书籍列表:</strong> GET /api/academy/books</li>
+            <li><strong>推荐书籍:</strong> GET /api/academy/books/recommended</li>
+            <li><strong>搜索书籍:</strong> GET /api/academy/books/search?keyword=xxx</li>
+        </ul>
+        <p><strong>后端服务:</strong> http://localhost:8088</p>
+        <p><strong>前端代理:</strong> http://localhost:3001/api/academy → http://localhost:8088</p>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8088';
+        
+        async function loadNews() {
+            const result = document.getElementById('news-result');
+            result.innerHTML = '加载中...';
+            try {
+                const res = await fetch(`${API_BASE}/api/academy/news`);
+                const data = await res.json();
+                if (data.success) {
+                    result.innerHTML = `<p class="success">✅ 成功获取 ${data.total} 条新闻</p>` + 
+                        data.news.map(n => `
+                            <div class="news-item">
+                                ${n.isTop ? '<span class="badge top">📌 置顶</span>' : ''}
+                                ${n.isHot ? '<span class="badge hot">🔥 热门</span>' : ''}
+                                <div class="title">${n.title}</div>
+                                <div class="meta">${n.source} | ${n.category} | 👁️ ${n.viewCount}</div>
+                            </div>
+                        `).join('');
+                } else {
+                    result.innerHTML = '<p class="error">❌ 获取失败</p>';
+                }
+            } catch (e) {
+                result.innerHTML = `<p class="error">❌ 错误: ${e.message}</p>`;
+            }
+        }
+        
+        async function loadHotNews() {
+            const result = document.getElementById('news-result');
+            result.innerHTML = '加载中...';
+            try {
+                const res = await fetch(`${API_BASE}/api/academy/news/hot`);
+                const data = await res.json();
+                if (data.success) {
+                    result.innerHTML = `<p class="success">✅ 成功获取 ${data.news.length} 条热门新闻</p>` + 
+                        data.news.map(n => `
+                            <div class="news-item">
+                                <span class="badge hot">🔥 热门</span>
+                                <div class="title">${n.title}</div>
+                                <div class="meta">${n.source} | 👁️ ${n.viewCount}</div>
+                            </div>
+                        `).join('');
+                }
+            } catch (e) {
+                result.innerHTML = `<p class="error">❌ 错误: ${e.message}</p>`;
+            }
+        }
+        
+        async function searchNews(keyword) {
+            const result = document.getElementById('news-result');
+            result.innerHTML = '搜索中...';
+            try {
+                const res = await fetch(`${API_BASE}/api/academy/news/search?keyword=${encodeURIComponent(keyword)}`);
+                const data = await res.json();
+                if (data.success) {
+                    result.innerHTML = `<p class="success">✅ 搜索"${keyword}"找到 ${data.total} 条结果</p>` + 
+                        data.news.map(n => `
+                            <div class="news-item">
+                                <div class="title">${n.title}</div>
+                                <div class="meta">${n.source} | ${n.category}</div>
+                            </div>
+                        `).join('');
+                }
+            } catch (e) {
+                result.innerHTML = `<p class="error">❌ 错误: ${e.message}</p>`;
+            }
+        }
+        
+        async function loadBooks() {
+            const result = document.getElementById('books-result');
+            result.innerHTML = '加载中...';
+            try {
+                const res = await fetch(`${API_BASE}/api/academy/books`);
+                const data = await res.json();
+                if (data.success) {
+                    result.innerHTML = `<p class="success">✅ 成功获取 ${data.total} 本书籍</p>` + 
+                        data.books.map(b => `
+                            <div class="book-item">
+                                ${b.isRecommended ? '<span class="badge recommend">⭐ 推荐</span>' : ''}
+                                <div class="title">${b.title}</div>
+                                <div class="meta">
+                                    ${b.author} | ${b.category} | 
+                                    <span class="rating">⭐ ${b.rating}</span> | 
+                                    📖 ${b.readCount}人读过
+                                </div>
+                            </div>
+                        `).join('');
+                }
+            } catch (e) {
+                result.innerHTML = `<p class="error">❌ 错误: ${e.message}</p>`;
+            }
+        }
+        
+        async function loadRecommendedBooks() {
+            const result = document.getElementById('books-result');
+            result.innerHTML = '加载中...';
+            try {
+                const res = await fetch(`${API_BASE}/api/academy/books/recommended`);
+                const data = await res.json();
+                if (data.success) {
+                    result.innerHTML = `<p class="success">✅ 成功获取 ${data.books.length} 本推荐书籍</p>` + 
+                        data.books.map(b => `
+                            <div class="book-item">
+                                <span class="badge recommend">⭐ 推荐</span>
+                                <div class="title">${b.title}</div>
+                                <div class="meta">
+                                    ${b.author} | <span class="rating">⭐ ${b.rating}</span>
+                                </div>
+                            </div>
+                        `).join('');
+                }
+            } catch (e) {
+                result.innerHTML = `<p class="error">❌ 错误: ${e.message}</p>`;
+            }
+        }
+        
+        async function searchBooks(keyword) {
+            const result = document.getElementById('books-result');
+            result.innerHTML = '搜索中...';
+            try {
+                const res = await fetch(`${API_BASE}/api/academy/books/search?keyword=${encodeURIComponent(keyword)}`);
+                const data = await res.json();
+                if (data.success) {
+                    result.innerHTML = `<p class="success">✅ 搜索"${keyword}"找到 ${data.total} 本书籍</p>` + 
+                        data.books.map(b => `
+                            <div class="book-item">
+                                <div class="title">${b.title}</div>
+                                <div class="meta">${b.author} | ${b.category}</div>
+                            </div>
+                        `).join('');
+                }
+            } catch (e) {
+                result.innerHTML = `<p class="error">❌ 错误: ${e.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

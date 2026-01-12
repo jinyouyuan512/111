@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录问题诊断 - 冀忆红途</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .status-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #6c757d;
+        }
+        .status-card.error {
+            background: #fff5f5;
+            border-left-color: #e53e3e;
+        }
+        .status-card.success {
+            background: #f0fff4;
+            border-left-color: #38a169;
+        }
+        .status-card.warning {
+            background: #fffaf0;
+            border-left-color: #dd6b20;
+        }
+        .status-card h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .status-icon.error {
+            background: #e53e3e;
+            color: white;
+        }
+        .status-icon.success {
+            background: #38a169;
+            color: white;
+        }
+        .status-icon.warning {
+            background: #dd6b20;
+            color: white;
+        }
+        .status-details {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #4a5568;
+        }
+        .status-details code {
+            background: rgba(0,0,0,0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: transform 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .btn-secondary {
+            background: #718096;
+        }
+        .test-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #e2e8f0;
+        }
+        .test-button {
+            padding: 10px 20px;
+            background: #4299e1;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .test-button:hover {
+            background: #3182ce;
+        }
+        .test-result {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .steps {
+            counter-reset: step;
+            list-style: none;
+        }
+        .steps li {
+            counter-increment: step;
+            margin-bottom: 15px;
+            padding-left: 40px;
+            position: relative;
+        }
+        .steps li::before {
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 登录问题诊断</h1>
+            <p>冀忆红途 - Login Issue Diagnosis</p>
+        </div>
+        
+        <div class="content">
+            <div class="status-card error">
+                <h3>
+                    <span class="status-icon error">✗</span>
+                    问题确认：User Service 无法启动
+                </h3>
+                <div class="status-details">
+                    <p><strong>错误信息：</strong></p>
+                    <p><code>POST http://localhost:3001/api/auth/login 500 (Internal Server Error)</code></p>
+                    <p style="margin-top: 10px;"><strong>根本原因：</strong></p>
+                    <p>User Service 依赖 Redis 存储用户会话和 Token，但 Redis 未安装或未启动。</p>
+                </div>
+            </div>
+
+            <div class="status-card warning">
+                <h3>
+                    <span class="status-icon warning">!</span>
+                    当前服务状态
+                </h3>
+                <div class="status-details">
+                    <p>✅ <strong>Frontend</strong> (端口 3001) - 正常运行</p>
+                    <p>✅ <strong>Mall Service</strong> (端口 8085) - 正常运行</p>
+                    <p>✅ <strong>Social Service</strong> (端口 8083) - 正常运行</p>
+                    <p>✅ <strong>MySQL</strong> (端口 3306) - 正常运行</p>
+                    <p style="margin-top: 10px;">❌ <strong>Redis</strong> (端口 6379) - <span style="color: #e53e3e; font-weight: bold;">未运行</span></p>
+                    <p>❌ <strong>User Service</strong> (端口 8081) - <span style="color: #e53e3e; font-weight: bold;">无法启动</span></p>
+                </div>
+            </div>
+
+            <div class="status-card success">
+                <h3>
+                    <span class="status-icon success">✓</span>
+                    解决方案（5分钟）
+                </h3>
+                <div class="status-details">
+                    <ol class="steps">
+                        <li>
+                            <strong>下载 Redis for Windows</strong><br>
+                            点击下载：<a href="https://github.com/tporadowski/redis/releases/download/v5.0.14.1/Redis-x64-5.0.14.1.zip" target="_blank">Redis-x64-5.0.14.1.zip</a> (约5MB)
+                        </li>
+                        <li>
+                            <strong>解压文件</strong><br>
+                            将下载的 ZIP 文件解压到 <code>C:\Redis</code> 目录
+                        </li>
+                        <li>
+                            <strong>启动 Redis</strong><br>
+                            双击运行 <code>C:\Redis\redis-server.exe</code><br>
+                            或在命令提示符中运行：<code>cd C:\Redis && redis-server.exe</code>
+                        </li>
+                        <li>
+                            <strong>验证 Redis</strong><br>
+                            打开新的命令提示符，运行：<code>C:\Redis\redis-cli.exe ping</code><br>
+                            应该返回：<code>PONG</code>
+                        </li>
+                        <li>
+                            <strong>User Service 自动启动</strong><br>
+                            User Service 会自动检测到 Redis 并重新启动<br>
+                            登录功能将恢复正常
+                        </li>
+                    </ol>
+                    <a href="INSTALL_REDIS.bat" class="btn" download>📥 下载安装脚本</a>
+                </div>
+            </div>
+
+            <div class="test-section">
+                <h3 style="margin-bottom: 15px;">🧪 服务状态测试</h3>
+                <button class="test-button" onclick="testRedis()">测试 Redis</button>
+                <button class="test-button" onclick="testUserService()">测试 User Service</button>
+                <button class="test-button" onclick="testMallService()">测试 Mall Service</button>
+                <button class="test-button" onclick="testSocialService()">测试 Social Service</button>
+                <button class="test-button" onclick="testAllServices()">测试所有服务</button>
+                <div id="testResult" class="test-result" style="display: none;"></div>
+            </div>
+
+            <div style="margin-top: 30px; padding: 20px; background: #edf2f7; border-radius: 8px;">
+                <h4 style="margin-bottom: 10px;">💡 其他解决方案</h4>
+                <p style="font-size: 14px; line-height: 1.6; color: #4a5568;">
+                    <strong>使用 Docker：</strong><br>
+                    <code>docker run -d --name jiyi-redis -p 6379:6379 redis:latest</code>
+                </p>
+                <p style="font-size: 14px; line-height: 1.6; color: #4a5568; margin-top: 10px;">
+                    <strong>使用 Chocolatey：</strong><br>
+                    <code>choco install redis-64</code>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const resultDiv = document.getElementById('testResult');
+
+        function showResult(text) {
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = text;
+        }
+
+        async function testRedis() {
+            showResult('正在测试 Redis 连接...\n');
+            try {
+                // Redis 没有 HTTP 接口，我们通过测试 User Service 来间接验证
+                const response = await fetch('http://localhost:8081/actuator/health', {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult('✅ Redis 连接正常！\n\n' + JSON.stringify(data, null, 2));
+                } else {
+                    showResult('❌ User Service 未响应\n\n这意味着 Redis 可能未运行\n\n请按照上面的步骤安装并启动 Redis');
+                }
+            } catch (error) {
+                showResult('❌ 无法连接到 User Service (端口 8081)\n\n错误: ' + error.message + '\n\n这意味着 Redis 未运行，User Service 无法启动\n\n请按照上面的步骤安装并启动 Redis');
+            }
+        }
+
+        async function testUserService() {
+            showResult('正在测试 User Service...\n');
+            try {
+                const response = await fetch('http://localhost:8081/actuator/health');
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult('✅ User Service 运行正常！\n\n' + JSON.stringify(data, null, 2));
+                } else {
+                    showResult('❌ User Service 返回错误: ' + response.status);
+                }
+            } catch (error) {
+                showResult('❌ 无法连接到 User Service\n\n错误: ' + error.message + '\n\n请确保 Redis 已启动');
+            }
+        }
+
+        async function testMallService() {
+            showResult('正在测试 Mall Service...\n');
+            try {
+                const response = await fetch('http://localhost:8085/api/mall/products?page=1&size=3');
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult('✅ Mall Service 运行正常！\n\n返回 ' + (data.records?.length || 0) + ' 个商品');
+                } else {
+                    showResult('❌ Mall Service 返回错误: ' + response.status);
+                }
+            } catch (error) {
+                showResult('❌ 无法连接到 Mall Service\n\n错误: ' + error.message);
+            }
+        }
+
+        async function testSocialService() {
+            showResult('正在测试 Social Service...\n');
+            try {
+                const response = await fetch('http://localhost:8083/api/social/posts?page=1&size=3');
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult('✅ Social Service 运行正常！\n\n返回 ' + (data.records?.length || 0) + ' 条动态');
+                } else {
+                    showResult('❌ Social Service 返回错误: ' + response.status);
+                }
+            } catch (error) {
+                showResult('❌ 无法连接到 Social Service\n\n错误: ' + error.message);
+            }
+        }
+
+        async function testAllServices() {
+            showResult('正在测试所有服务...\n\n');
+            
+            const services = [
+                { name: 'User Service', url: 'http://localhost:8081/actuator/health', port: 8081 },
+                { name: 'Mall Service', url: 'http://localhost:8085/api/mall/products?page=1&size=1', port: 8085 },
+                { name: 'Social Service', url: 'http://localhost:8083/api/social/posts?page=1&size=1', port: 8083 }
+            ];
+
+            let results = '服务状态检查结果：\n\n';
+
+            for (const service of services) {
+                try {
+                    const response = await fetch(service.url);
+                    if (response.ok) {
+                        results += `✅ ${service.name} (${service.port}) - 运行正常\n`;
+                    } else {
+                        results += `⚠️  ${service.name} (${service.port}) - 返回错误 ${response.status}\n`;
+                    }
+                } catch (error) {
+                    results += `❌ ${service.name} (${service.port}) - 无法连接\n`;
+                }
+            }
+
+            results += '\n';
+            results += '如果 User Service 无法连接，请安装并启动 Redis！';
+
+            showResult(results);
+        }
+
+        // 页面加载时自动测试
+        window.addEventListener('load', () => {
+            setTimeout(testAllServices, 500);
+        });
+    </script>
+</body>
+</html>

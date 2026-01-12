@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>测试商城 API</title>
+</head>
+<body>
+    <h1>商城 API 测试</h1>
+    <button onclick="testAPI()">测试 API</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function testAPI() {
+            try {
+                const response = await fetch('http://localhost:8085/api/mall/products?page=1&size=5');
+                const data = await response.json();
+                document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+                
+                // 显示商品名称
+                if (data.data && data.data.records) {
+                    console.log('商品列表:');
+                    data.data.records.forEach(p => {
+                        console.log(`${p.id}. ${p.name} - ${p.category} - ¥${p.price}`);
+                    });
+                }
+            } catch (error) {
+                document.getElementById('result').textContent = '错误: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

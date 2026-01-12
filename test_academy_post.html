@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>测试 Academy POST API</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .result { margin-top: 20px; padding: 10px; border: 1px solid #ccc; background: #f9f9f9; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #333; color: #0f0; padding: 10px; overflow: auto; }
+    </style>
+</head>
+<body>
+    <h1>测试 Academy POST API</h1>
+    
+    <h2>1. 测试 GET /api/academy/news</h2>
+    <button onclick="testGetNews()">获取新闻列表</button>
+    
+    <h2>2. 测试 POST /api/academy/news</h2>
+    <button onclick="testPostNews()">添加新闻</button>
+    
+    <h2>3. 测试 POST /api/academy/books</h2>
+    <button onclick="testPostBook()">添加书籍</button>
+    
+    <h2>4. 测试 OPTIONS 预检请求</h2>
+    <button onclick="testOptions()">发送 OPTIONS</button>
+    
+    <div class="result">
+        <h3>结果:</h3>
+        <pre id="result">点击按钮测试...</pre>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://localhost:8088';
+        
+        async function testGetNews() {
+            try {
+                const response = await fetch(`${BASE_URL}/api/academy/news`);
+                const data = await response.json();
+                document.getElementById('result').textContent = 
+                    `状态: ${response.status}\n\n${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                document.getElementById('result').textContent = `错误: ${error.message}`;
+            }
+        }
+        
+        async function testPostNews() {
+            const newsData = {
+                title: "测试新闻 - " + new Date().toLocaleString(),
+                summary: "这是一条通过API添加的测试新闻",
+                category: "测试",
+                source: "测试来源",
+                externalUrl: "https://example.com/test"
+            };
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/academy/news`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(newsData)
+                });
+                
+                const text = await response.text();
+                let result;
+                try {
+                    result = JSON.parse(text);
+                } catch {
+                    result = text;
+                }
+                
+                document.getElementById('result').textContent = 
+                    `状态: ${response.status} ${response.statusText}\n\n请求数据:\n${JSON.stringify(newsData, null, 2)}\n\n响应:\n${typeof result === 'object' ? JSON.stringify(result, null, 2) : result}`;
+            } catch (error) {
+                document.getElementById('result').textContent = `错误: ${error.message}`;
+            }
+        }
+        
+        async function testPostBook() {
+            const bookData = {
+                title: "测试书籍 - " + new Date().toLocaleString(),
+                author: "测试作者",
+                publisher: "测试出版社",
+                description: "这是一本测试书籍",
+                category: "测试",
+                externalUrl: "https://search.jd.com/Search?keyword=测试"
+            };
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/academy/books`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(bookData)
+                });
+                
+                const text = await response.text();
+                let result;
+                try {
+                    result = JSON.parse(text);
+                } catch {
+                    result = text;
+                }
+                
+                document.getElementById('result').textContent = 
+                    `状态: ${response.status} ${response.statusText}\n\n请求数据:\n${JSON.stringify(bookData, null, 2)}\n\n响应:\n${typeof result === 'object' ? JSON.stringify(result, null, 2) : result}`;
+            } catch (error) {
+                document.getElementById('result').textContent = `错误: ${error.message}`;
+            }
+        }
+        
+        async function testOptions() {
+            try {
+                const response = await fetch(`${BASE_URL}/api/academy/news`, {
+                    method: 'OPTIONS'
+                });
+                
+                const headers = {};
+                response.headers.forEach((value, key) => {
+                    headers[key] = value;
+                });
+                
+                document.getElementById('result').textContent = 
+                    `状态: ${response.status}\n\n响应头:\n${JSON.stringify(headers, null, 2)}`;
+            } catch (error) {
+                document.getElementById('result').textContent = `错误: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

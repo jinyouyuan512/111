@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>浏览器控制台测试 - 图片加载诊断</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+        .test-section h2 {
+            color: #667eea;
+            margin-top: 0;
+            font-size: 1.3rem;
+        }
+        .test-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 5px;
+            transition: all 0.3s;
+        }
+        .test-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        .result {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            border: 1px solid #e0e0e0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .info {
+            color: #17a2b8;
+        }
+        .warning {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        .image-preview {
+            margin-top: 15px;
+            text-align: center;
+        }
+        .image-preview img {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .instructions {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 浏览器控制台测试</h1>
+        <p class="subtitle">诊断作品详情弹窗图片不显示问题</p>
+
+        <div class="instructions">
+            <h3>📋 使用说明</h3>
+            <ol>
+                <li>确保前端服务运行在 <code>http://localhost:3001</code></li>
+                <li>确保后端 Social Service 运行在 <code>http://localhost:8083</code></li>
+                <li>按 <code>F12</code> 打开浏览器开发者工具</li>
+                <li>点击下面的测试按钮，查看结果</li>
+                <li>如果测试失败，查看控制台的详细错误信息</li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h2>测试 1：检查前端服务</h2>
+            <p>测试前端服务是否正常运行</p>
+            <button class="test-button" onclick="testFrontend()">运行测试</button>
+            <div id="test1-result" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>测试 2：直接访问后端图片</h2>
+            <p>直接访问后端服务的图片URL（绕过代理）</p>
+            <button class="test-button" onclick="testBackendDirect()">运行测试</button>
+            <div id="test2-result" class="result" style="display:none;"></div>
+            <div id="test2-preview" class="image-preview" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>测试 3：通过代理访问图片</h2>
+            <p>通过 Vite 代理访问图片（模拟前端页面的请求）</p>
+            <button class="test-button" onclick="testProxy()">运行测试</button>
+            <div id="test3-result" class="result" style="display:none;"></div>
+            <div id="test3-preview" class="image-preview" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>测试 4：检查 CORS 配置</h2>
+            <p>测试跨域资源共享（CORS）配置是否正确</p>
+            <button class="test-button" onclick="testCORS()">运行测试</button>
+            <div id="test4-result" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>测试 5：模拟前端请求</h2>
+            <p>完全模拟前端页面的图片加载过程</p>
+            <button class="test-button" onclick="testFrontendSimulation()">运行测试</button>
+            <div id="test5-result" class="result" style="display:none;"></div>
+            <div id="test5-preview" class="image-preview" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>测试 6：检查浏览器缓存</h2>
+            <p>检查浏览器是否使用了缓存的旧资源</p>
+            <button class="test-button" onclick="testCache()">运行测试</button>
+            <div id="test6-result" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔧 一键运行所有测试</h2>
+            <button class="test-button" onclick="runAllTests()" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">运行所有测试</button>
+        </div>
+    </div>
+
+    <script>
+        const imageUrl = 'http://localhost:8083/uploads/images/2026/01/04/36b56a91-ba57-403d-acd5-6d6d6805e41c.png';
+        const proxyUrl = '/uploads/images/2026/01/04/36b56a91-ba57-403d-acd5-6d6d6805e41c.png';
+
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'info';
+            element.innerHTML += `<div class="${className}">${message}</div>`;
+        }
+
+        function clearLog(elementId) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = '';
+            element.style.display = 'none';
+        }
+
+        async function testFrontend() {
+            const resultId = 'test1-result';
+            clearLog(resultId);
+            log(resultId, '🔍 测试 1：检查前端服务...', 'info');
+
+            try {
+                const response = await fetch('http://localhost:3001');
+                if (response.ok) {
+                    log(resultId, '✅ 前端服务正常运行', 'success');
+                    log(resultId, `状态码: ${response.status}`, 'info');
+                } else {
+                    log(resultId, `❌ 前端服务响应异常: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(resultId, `❌ 无法连接到前端服务: ${error.message}`, 'error');
+                log(resultId, '请确保前端服务运行在 http://localhost:3001', 'warning');
+            }
+        }
+
+        async function testBackendDirect() {
+            const resultId = 'test2-result';
+            const previewId = 'test2-preview';
+            clearLog(resultId);
+            document.getElementById(previewId).style.display = 'none';
+            document.getElementById(previewId).innerHTML = '';
+
+            log(resultId, '🔍 测试 2：直接访问后端图片...', 'info');
+            log(resultId, `URL: ${imageUrl}`, 'info');
+
+            try {
+                const response = await fetch(imageUrl, { mode: 'cors' });
+                log(resultId, `状态码: ${response.status}`, response.ok ? 'success' : 'error');
+                log(resultId, `Content-Type: ${response.headers.get('content-type')}`, 'info');
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    log(resultId, `文件大小: ${blob.size} bytes`, 'info');
+                    log(resultId, '✅ 后端图片访问成功', 'success');
+
+                    // 显示图片预览
+                    const imgUrl = URL.createObjectURL(blob);
+                    const preview = document.getElementById(previewId);
+                    preview.innerHTML = `<img src="${imgUrl}" alt="图片预览">`;
+                    preview.style.display = 'block';
+                } else {
+                    log(resultId, `❌ 后端图片访问失败: ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                log(resultId, `❌ 请求失败: ${error.message}`, 'error');
+                if (error.message.includes('CORS')) {
+                    log(resultId, '⚠️ CORS 错误：后端未正确配置跨域访问', 'warning');
+                }
+            }
+        }
+
+        async function testProxy() {
+            const resultId = 'test3-result';
+            const previewId = 'test3-preview';
+            clearLog(resultId);
+            document.getElementById(previewId).style.display = 'none';
+            document.getElementById(previewId).innerHTML = '';
+
+            log(resultId, '🔍 测试 3：通过代理访问图片...', 'info');
+            log(resultId, `代理URL: ${proxyUrl}`, 'info');
+
+            try {
+                const response = await fetch(proxyUrl);
+                log(resultId, `状态码: ${response.status}`, response.ok ? 'success' : 'error');
+                log(resultId, `Content-Type: ${response.headers.get('content-type')}`, 'info');
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    log(resultId, `文件大小: ${blob.size} bytes`, 'info');
+                    log(resultId, '✅ 代理访问成功', 'success');
+
+                    // 显示图片预览
+                    const imgUrl = URL.createObjectURL(blob);
+                    const preview = document.getElementById(previewId);
+                    preview.innerHTML = `<img src="${imgUrl}" alt="图片预览">`;
+                    preview.style.display = 'block';
+                } else {
+                    log(resultId, `❌ 代理访问失败: ${response.statusText}`, 'error');
+                    log(resultId, '⚠️ 请检查 Vite 代理配置', 'warning');
+                }
+            } catch (error) {
+                log(resultId, `❌ 请求失败: ${error.message}`, 'error');
+                log(resultId, '⚠️ 可能的原因：', 'warning');
+                log(resultId, '1. 前端服务未运行', 'warning');
+                log(resultId, '2. Vite 代理配置错误', 'warning');
+                log(resultId, '3. 后端服务未运行', 'warning');
+            }
+        }
+
+        async function testCORS() {
+            const resultId = 'test4-result';
+            clearLog(resultId);
+            log(resultId, '🔍 测试 4：检查 CORS 配置...', 'info');
+
+            try {
+                const response = await fetch(imageUrl, {
+                    method: 'HEAD',
+                    mode: 'cors'
+                });
+
+                const corsHeaders = {
+                    'Access-Control-Allow-Origin': response.headers.get('access-control-allow-origin'),
+                    'Access-Control-Allow-Methods': response.headers.get('access-control-allow-methods'),
+                    'Access-Control-Allow-Headers': response.headers.get('access-control-allow-headers')
+                };
+
+                log(resultId, 'CORS 响应头:', 'info');
+                for (const [key, value] of Object.entries(corsHeaders)) {
+                    if (value) {
+                        log(resultId, `  ${key}: ${value}`, 'success');
+                    } else {
+                        log(resultId, `  ${key}: (未设置)`, 'warning');
+                    }
+                }
+
+                if (corsHeaders['Access-Control-Allow-Origin']) {
+                    log(resultId, '✅ CORS 配置正常', 'success');
+                } else {
+                    log(resultId, '⚠️ CORS 配置可能有问题', 'warning');
+                }
+            } catch (error) {
+                log(resultId, `❌ CORS 测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testFrontendSimulation() {
+            const resultId = 'test5-result';
+            const previewId = 'test5-preview';
+            clearLog(resultId);
+            document.getElementById(previewId).style.display = 'none';
+            document.getElementById(previewId).innerHTML = '';
+
+            log(resultId, '🔍 测试 5：模拟前端请求...', 'info');
+
+            // 模拟前端的 getMediaUrl 函数
+            const work = {
+                coverImage: 'http://localhost:8083/uploads/images/2026/01/04/36b56a91-ba57-403d-acd5-6d6d6805e41c.png',
+                files: ['http://localhost:8083/uploads/images/2026/01/04/36b56a91-ba57-403d-acd5-6d6d6805e41c.png']
+            };
+
+            const mediaUrl = work.coverImage || (work.files && work.files.length > 0 ? work.files[0] : '');
+            log(resultId, `计算出的图片URL: ${mediaUrl}`, 'info');
+
+            if (!mediaUrl) {
+                log(resultId, '❌ 无法获取图片URL', 'error');
+                return;
+            }
+
+            // 创建 img 元素测试
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+
+            img.onload = () => {
+                log(resultId, '✅ 图片加载成功', 'success');
+                log(resultId, `图片尺寸: ${img.width} x ${img.height}`, 'info');
+
+                const preview = document.getElementById(previewId);
+                preview.innerHTML = `<img src="${mediaUrl}" alt="图片预览">`;
+                preview.style.display = 'block';
+            };
+
+            img.onerror = (error) => {
+                log(resultId, '❌ 图片加载失败', 'error');
+                log(resultId, `错误: ${error}`, 'error');
+            };
+
+            img.src = mediaUrl;
+            log(resultId, '正在加载图片...', 'info');
+        }
+
+        async function testCache() {
+            const resultId = 'test6-result';
+            clearLog(resultId);
+            log(resultId, '🔍 测试 6：检查浏览器缓存...', 'info');
+
+            // 测试带缓存的请求
+            try {
+                const cachedResponse = await fetch(imageUrl);
+                const cacheControl = cachedResponse.headers.get('cache-control');
+                const etag = cachedResponse.headers.get('etag');
+                const lastModified = cachedResponse.headers.get('last-modified');
+
+                log(resultId, '缓存相关响应头:', 'info');
+                log(resultId, `  Cache-Control: ${cacheControl || '(未设置)'}`, cacheControl ? 'info' : 'warning');
+                log(resultId, `  ETag: ${etag || '(未设置)'}`, etag ? 'info' : 'warning');
+                log(resultId, `  Last-Modified: ${lastModified || '(未设置)'}`, lastModified ? 'info' : 'warning');
+
+                // 测试不带缓存的请求
+                const noCacheResponse = await fetch(imageUrl, {
+                    cache: 'no-cache',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
+
+                if (cachedResponse.ok && noCacheResponse.ok) {
+                    log(resultId, '✅ 缓存测试通过', 'success');
+                    log(resultId, '建议：清除浏览器缓存后重试', 'info');
+                } else {
+                    log(resultId, '⚠️ 缓存测试异常', 'warning');
+                }
+            } catch (error) {
+                log(resultId, `❌ 缓存测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function runAllTests() {
+            console.log('🚀 开始运行所有测试...');
+            await testFrontend();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await testBackendDirect();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await testProxy();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await testCORS();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await testFrontendSimulation();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await testCache();
+            console.log('✅ 所有测试完成');
+        }
+    </script>
+</body>
+</html>

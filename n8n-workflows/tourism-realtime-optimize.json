@@ -1,0 +1,67 @@
+{
+  "name": "智慧旅游 - 实时路线优化",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/realtime-optimize",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "o1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "options": { "temperature": 0.5 }
+      },
+      "id": "o2",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [400, 500]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是河北红色旅游路线规划专家。\n\n用户选择的景点：{{ $json.spots ? $json.spots.join('、') : '西柏坡纪念馆、狼牙山' }}\n优化目标：{{ $json.optimizeFor || 'balanced' }}（time=最短时间/distance=最短距离/balanced=均衡）\n\n景点位置参考：\n- 西柏坡纪念馆：石家庄平山县\n- 狼牙山五壮士纪念地：保定易县\n- 白洋淀雁翎队纪念馆：保定安新县\n- 冉庄地道战遗址：保定清苑区\n- 董存瑞烈士陵园：承德隆化县\n- 李大钊纪念馆：唐山乐亭县\n- 八路军一二九师司令部旧址：邯郸涉县\n\n请优化路线顺序，返回JSON：\n{\n  \"optimizedOrder\": [\"景点1\", \"景点2\"],\n  \"reason\": \"优化理由\",\n  \"tips\": [\"路线建议1\", \"路线建议2\"],\n  \"warnings\": []\n}\n\n只返回JSON。"
+      },
+      "id": "o3",
+      "name": "AI优化路线",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Webhook').first().json;\nconst spots = input.spots || ['西柏坡纪念馆', '狼牙山五壮士纪念地'];\nconst optimizeFor = input.optimizeFor || 'balanced';\n\n// 景点坐标\nconst spotCoords = {\n  '西柏坡纪念馆': { lat: 38.32, lng: 114.18, city: '石家庄' },\n  '狼牙山五壮士纪念地': { lat: 39.25, lng: 115.45, city: '保定' },\n  '白洋淀雁翎队纪念馆': { lat: 38.92, lng: 115.95, city: '保定' },\n  '冉庄地道战遗址': { lat: 38.78, lng: 115.52, city: '保定' },\n  '董存瑞烈士陵园': { lat: 41.32, lng: 117.73, city: '承德' },\n  '李大钊纪念馆': { lat: 39.43, lng: 118.88, city: '唐山' },\n  '八路军一二九师司令部旧址': { lat: 36.58, lng: 113.67, city: '邯郸' }\n};\n\n// 计算距离\nfunction calcDistance(c1, c2) {\n  if (!c1 || !c2) return 100;\n  const R = 6371;\n  const dLat = (c2.lat - c1.lat) * Math.PI / 180;\n  const dLng = (c2.lng - c1.lng) * Math.PI / 180;\n  const a = Math.sin(dLat/2)**2 + Math.cos(c1.lat*Math.PI/180) * Math.cos(c2.lat*Math.PI/180) * Math.sin(dLng/2)**2;\n  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));\n}\n\n// 解析AI优化结果\nlet aiResult = { optimizedOrder: spots, reason: '按地理位置优化', tips: [], warnings: [] };\ntry {\n  const aiText = $input.first().json.text || '';\n  const match = aiText.match(/\\{[\\s\\S]*\\}/);\n  if (match) aiResult = JSON.parse(match[0]);\n} catch (e) {}\n\n// 使用AI优化的顺序，或回退到贪心算法\nlet optimizedOrder = aiResult.optimizedOrder;\nif (!optimizedOrder || optimizedOrder.length !== spots.length) {\n  // 贪心算法\n  optimizedOrder = [spots[0]];\n  const remaining = spots.slice(1);\n  while (remaining.length > 0) {\n    const current = optimizedOrder[optimizedOrder.length - 1];\n    let minDist = Infinity, nearestIdx = 0;\n    remaining.forEach((s, i) => {\n      const d = calcDistance(spotCoords[current], spotCoords[s]);\n      if (d < minDist) { minDist = d; nearestIdx = i; }\n    });\n    optimizedOrder.push(remaining[nearestIdx]);\n    remaining.splice(nearestIdx, 1);\n  }\n}\n\n// 计算路段详情\nconst segments = [];\nlet totalDistance = 0, totalMinutes = 0;\nfor (let i = 0; i < optimizedOrder.length - 1; i++) {\n  const from = optimizedOrder[i], to = optimizedOrder[i + 1];\n  const distance = Math.round(calcDistance(spotCoords[from], spotCoords[to]));\n  const durationMinutes = Math.round(distance * 1.2);\n  totalDistance += distance;\n  totalMinutes += durationMinutes;\n  segments.push({\n    from, to, distance: distance + 'km',\n    duration: durationMinutes < 60 ? durationMinutes + '分钟' : Math.floor(durationMinutes/60) + '小时' + (durationMinutes%60 > 0 ? durationMinutes%60 + '分钟' : ''),\n    transport: 'drive'\n  });\n}\n\n// 计算原始距离\nlet originalDistance = 0;\nfor (let i = 0; i < spots.length - 1; i++) {\n  originalDistance += calcDistance(spotCoords[spots[i]], spotCoords[spots[i + 1]]);\n}\n\nconst savings = Math.round(originalDistance - totalDistance);\n\nreturn {\n  success: true,\n  originalOrder: spots,\n  optimizedOrder,\n  optimizeFor,\n  reason: aiResult.reason || '按地理位置优化，减少绕路',\n  savings: {\n    distance: savings > 0 ? savings + 'km' : '0km',\n    time: savings > 0 ? Math.round(savings * 1.2 / 60) + '小时' : '0小时'\n  },\n  segments,\n  totalDistance: totalDistance + 'km',\n  totalDuration: totalMinutes < 60 ? totalMinutes + '分钟' : Math.floor(totalMinutes/60) + '小时' + (totalMinutes%60 > 0 ? totalMinutes%60 + '分钟' : ''),\n  tips: aiResult.tips || ['建议早出发避开高峰', '沿途可在服务区休息'],\n  warnings: totalDistance > 300 ? ['行程较长，建议分多日完成'] : (aiResult.warnings || []),\n  generatedAt: new Date().toISOString()\n};"
+      },
+      "id": "o4",
+      "name": "计算路线",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "o5",
+      "name": "返回结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "AI优化路线", "type": "main", "index": 0 }]] },
+    "OpenAI Chat Model": { "ai_languageModel": [[{ "node": "AI优化路线", "type": "ai_languageModel", "index": 0 }]] },
+    "AI优化路线": { "main": [[{ "node": "计算路线", "type": "main", "index": 0 }]] },
+    "计算路线": { "main": [[{ "node": "返回结果", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

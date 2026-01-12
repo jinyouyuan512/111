@@ -1,0 +1,60 @@
+{
+  "name": "智慧旅游-景点数据(数据库)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/spots",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM attraction WHERE status = 'open' AND category = '革命遗址' ORDER BY rating DESC",
+        "options": {}
+      },
+      "id": "mysql",
+      "name": "MySQL",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.3,
+      "position": [450, 300],
+      "credentials": { "mySql": { "id": "mysql-jiyi", "name": "MySQL jiyi_tourism" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "const spots = $input.all();\nconst icons = {'西柏坡':'🏛️','狼牙山':'⛰️','冉庄':'🚇','李大钊':'📚','白求恩':'🏥','华北军区':'🎖️','白洋淀':'🚤','塞罕坝':'🌲'};\nconst gradients = {'西柏坡':'linear-gradient(135deg,#c41e3a,#8b0000)','狼牙山':'linear-gradient(135deg,#2c5530,#1a3a1c)','冉庄':'linear-gradient(135deg,#5d4e37,#3d3225)','李大钊':'linear-gradient(135deg,#1e3a5f,#0d1f33)','白洋淀':'linear-gradient(135deg,#1890ff,#096dd9)','塞罕坝':'linear-gradient(135deg,#228b22,#006400)'};\nconst slogans = {'西柏坡':'新中国从这里走来','狼牙山':'英雄壮举，气壮山河','冉庄':'地下长城，抗战奇迹','李大钊':'铁肩担道义，妙手著文章','白洋淀':'华北明珠，水上传奇','塞罕坝':'荒原变林海的绿色奇迹'};\nconst result = spots.map(item => {\n  const s = item.json;\n  let icon='🏛️',gradient='linear-gradient(135deg,#c41e3a,#8b0000)',slogan='红色旅游胜地';\n  for(const k of Object.keys(icons)){if(s.name.includes(k)){icon=icons[k];gradient=gradients[k]||gradient;slogan=slogans[k]||slogan;break;}}\n  return {id:s.id,name:s.name,icon,gradient,slogan,location:s.address,rating:s.rating,isFree:parseFloat(s.ticket_price)===0,needReserve:parseFloat(s.ticket_price)===0,tags:['红色文化','爱国教育'],introduction:s.description,ticketPrice:s.ticket_price,openingHours:s.opening_hours};\n});\nreturn [{json:{success:true,spots:result}}];"
+      },
+      "id": "code",
+      "name": "格式化",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": { "responseHeaders": { "entries": [{ "name": "Access-Control-Allow-Origin", "value": "*" }] } }
+      },
+      "id": "respond",
+      "name": "响应",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "MySQL", "type": "main", "index": 0 }]] },
+    "MySQL": { "main": [[{ "node": "格式化", "type": "main", "index": 0 }]] },
+    "格式化": { "main": [[{ "node": "响应", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "tourism" }]
+}

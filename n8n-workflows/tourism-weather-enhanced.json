@@ -1,0 +1,56 @@
+{
+  "name": "智慧旅游 - 天气查询(增强版)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/weather",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      },
+      "id": "webhook-weather",
+      "name": "Webhook 天气查询",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 获取请求参数\nconst body = $input.first().json.body || $input.first().json;\nconst spots = body.spots || ['西柏坡纪念馆'];\nconst date = body.date || new Date().toISOString().split('T')[0];\n\n// 景点对应的城市和坐标\nconst spotCityMap = {\n  '西柏坡纪念馆': { city: '石家庄', lat: 38.31, lng: 114.18 },\n  '狼牙山五壮士纪念地': { city: '保定', lat: 39.22, lng: 115.32 },\n  '白洋淀雁翎队纪念馆': { city: '保定', lat: 38.92, lng: 115.98 },\n  '塞罕坝展览馆': { city: '承德', lat: 42.40, lng: 117.32 },\n  '一二九师司令部旧址': { city: '邯郸', lat: 36.78, lng: 113.92 },\n  '冉庄地道战遗址': { city: '保定', lat: 38.68, lng: 115.52 },\n  '董存瑞烈士陵园': { city: '承德', lat: 41.32, lng: 117.73 },\n  '李大钊纪念馆': { city: '唐山', lat: 39.63, lng: 118.18 }\n};\n\n// 季节性天气模板（用于降级）\nconst seasonWeather = {\n  spring: { conditions: ['晴', '多云', '小雨'], tempRange: [8, 22], humidity: [40, 60] },\n  summer: { conditions: ['晴', '多云', '雷阵雨', '阴'], tempRange: [22, 35], humidity: [50, 80] },\n  autumn: { conditions: ['晴', '多云', '阴'], tempRange: [10, 25], humidity: [35, 55] },\n  winter: { conditions: ['晴', '多云', '小雪', '阴'], tempRange: [-8, 8], humidity: [30, 50] }\n};\n\n// 获取当前季节\nfunction getSeason(dateStr) {\n  const month = new Date(dateStr).getMonth() + 1;\n  if (month >= 3 && month <= 5) return 'spring';\n  if (month >= 6 && month <= 8) return 'summer';\n  if (month >= 9 && month <= 11) return 'autumn';\n  return 'winter';\n}\n\n// 生成模拟天气数据\nfunction generateMockWeather(spotName, dateStr) {\n  const season = getSeason(dateStr);\n  const sw = seasonWeather[season];\n  const condition = sw.conditions[Math.floor(Math.random() * sw.conditions.length)];\n  const minTemp = sw.tempRange[0] + Math.floor(Math.random() * 5);\n  const maxTemp = sw.tempRange[1] - Math.floor(Math.random() * 5);\n  const humidity = sw.humidity[0] + Math.floor(Math.random() * (sw.humidity[1] - sw.humidity[0]));\n  \n  // 根据天气生成建议\n  let suggestion = '天气适宜出行，祝旅途愉快！';\n  if (condition.includes('雨')) suggestion = '☔ 建议携带雨具，注意防滑';\n  else if (condition.includes('雪')) suggestion = '❄️ 道路可能湿滑，注意保暖和安全';\n  else if (maxTemp > 30) suggestion = '🌡️ 天气炎热，注意防暑降温，多补充水分';\n  else if (minTemp < 0) suggestion = '🧥 天气寒冷，注意保暖，穿厚外套';\n  else if (condition === '晴') suggestion = '☀️ 天气晴好，适合户外活动，注意防晒';\n  \n  return {\n    spotName,\n    city: spotCityMap[spotName]?.city || '石家庄',\n    date: dateStr,\n    condition,\n    icon: getWeatherIcon(condition),\n    temperature: { min: minTemp, max: maxTemp, current: Math.round((minTemp + maxTemp) / 2) },\n    humidity,\n    windSpeed: Math.floor(Math.random() * 20) + 5,\n    windDirection: ['东风', '南风', '西风', '北风'][Math.floor(Math.random() * 4)],\n    aqi: Math.floor(Math.random() * 100) + 30,\n    uvIndex: Math.floor(Math.random() * 8) + 1,\n    suggestion,\n    forecast: generateForecast(dateStr, season)\n  };\n}\n\n// 获取天气图标\nfunction getWeatherIcon(condition) {\n  const icons = {\n    '晴': '☀️', '多云': '⛅', '阴': '☁️',\n    '小雨': '🌧️', '中雨': '🌧️', '大雨': '⛈️', '雷阵雨': '⛈️',\n    '小雪': '🌨️', '中雪': '❄️', '大雪': '❄️'\n  };\n  return icons[condition] || '🌤️';\n}\n\n// 生成未来3天预报\nfunction generateForecast(startDate, season) {\n  const sw = seasonWeather[season];\n  const forecast = [];\n  for (let i = 1; i <= 3; i++) {\n    const date = new Date(startDate);\n    date.setDate(date.getDate() + i);\n    const condition = sw.conditions[Math.floor(Math.random() * sw.conditions.length)];\n    forecast.push({\n      date: date.toISOString().split('T')[0],\n      condition,\n      icon: getWeatherIcon(condition),\n      tempMin: sw.tempRange[0] + Math.floor(Math.random() * 5),\n      tempMax: sw.tempRange[1] - Math.floor(Math.random() * 5)\n    });\n  }\n  return forecast;\n}\n\n// 为每个景点生成天气数据\nconst weatherData = spots.map(spot => generateMockWeather(spot, date));\n\nreturn {\n  success: true,\n  queryDate: date,\n  weather: weatherData,\n  dataSource: 'mock',\n  tips: [\n    '天气数据仅供参考，出行前请关注最新天气预报',\n    '山区天气多变，建议携带雨具',\n    '早晚温差较大，注意增减衣物'\n  ]\n};"
+      },
+      "id": "generate-weather",
+      "name": "生成天气数据",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond-weather",
+      "name": "返回天气响应",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [800, 300]
+    }
+  ],
+  "connections": {
+    "Webhook 天气查询": {
+      "main": [[{ "node": "生成天气数据", "type": "main", "index": 0 }]]
+    },
+    "生成天气数据": {
+      "main": [[{ "node": "返回天气响应", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

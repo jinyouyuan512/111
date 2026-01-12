@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>测试创意 API</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <h1>测试创意 API</h1>
+    <button onclick="testTopDesigns()">测试 getTopDesigns</button>
+    <button onclick="testMyDesigns()">测试 getMyDesigns</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function testTopDesigns() {
+            try {
+                const response = await fetch('http://localhost:8087/api/creative/designs/top?limit=100');
+                const data = await response.json();
+                document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+                console.log('Top Designs:', data);
+            } catch (error) {
+                document.getElementById('result').textContent = 'Error: ' + error.message;
+                console.error('Error:', error);
+            }
+        }
+
+        async function testMyDesigns() {
+            try {
+                const response = await fetch('http://localhost:8087/api/creative/designs/my', {
+                    headers: {
+                        'X-User-Id': '5'
+                    }
+                });
+                const data = await response.json();
+                document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+                console.log('My Designs:', data);
+            } catch (error) {
+                document.getElementById('result').textContent = 'Error: ' + error.message;
+                console.error('Error:', error);
+            }
+        }
+
+        // 自动测试
+        window.onload = () => {
+            testTopDesigns();
+        };
+    </script>
+</body>
+</html>

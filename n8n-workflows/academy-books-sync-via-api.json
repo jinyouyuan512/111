@@ -1,0 +1,94 @@
+{
+  "name": "传承学院-书籍同步(通过API)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "days", "daysInterval": 1 }]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "定时触发(每天)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "academy/sync-books",
+        "responseMode": "responseNode",
+        "options": { "allowedOrigins": "*" }
+      },
+      "id": "webhook-manual",
+      "name": "手动触发",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 生成河北红色书籍数据\nconst booksData = [\n  {\n    title: '西柏坡：新中国从这里走来',\n    author: '中共河北省委党史研究室',\n    publisher: '河北人民出版社',\n    isbn: '978-7-202-12345-6',\n    description: '本书全面记录了中共中央在西柏坡的光辉历程。',\n    category: '党史著作',\n    rating: 4.9,\n    isRecommended: true,\n    hasEbook: true,\n    tags: '西柏坡,党史,必读',\n    externalUrl: 'https://search.jd.com/Search?keyword=西柏坡新中国从这里走来'\n  },\n  {\n    title: '狼牙山五壮士',\n    author: '沈重',\n    publisher: '人民文学出版社',\n    isbn: '978-7-020-12346-7',\n    description: '讲述五位八路军战士的壮烈故事。',\n    category: '纪实文学',\n    rating: 4.8,\n    isRecommended: true,\n    hasEbook: true,\n    tags: '抗战,英雄,经典',\n    externalUrl: 'https://search.jd.com/Search?keyword=狼牙山五壮士'\n  },\n  {\n    title: '白洋淀纪事',\n    author: '孙犁',\n    publisher: '人民文学出版社',\n    isbn: '978-7-020-12349-0',\n    description: '孙犁代表作，描绘抗日战争时期冀中人民的斗争生活。',\n    category: '红色经典',\n    rating: 4.9,\n    isRecommended: true,\n    hasEbook: true,\n    tags: '白洋淀,孙犁,文学经典',\n    externalUrl: 'https://search.jd.com/Search?keyword=白洋淀纪事'\n  }\n];\n\nreturn booksData.map(item => ({ json: item }));"
+      },
+      "id": "generate-books",
+      "name": "生成书籍数据",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8088/api/academy/books",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "title", "value": "={{ $json.title }}" },
+            { "name": "author", "value": "={{ $json.author }}" },
+            { "name": "publisher", "value": "={{ $json.publisher }}" },
+            { "name": "isbn", "value": "={{ $json.isbn }}" },
+            { "name": "description", "value": "={{ $json.description }}" },
+            { "name": "category", "value": "={{ $json.category }}" },
+            { "name": "rating", "value": "={{ $json.rating }}" },
+            { "name": "isRecommended", "value": "={{ $json.isRecommended }}" },
+            { "name": "hasEbook", "value": "={{ $json.hasEbook }}" },
+            { "name": "tags", "value": "={{ $json.tags }}" },
+            { "name": "externalUrl", "value": "={{ $json.externalUrl }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "post-to-api",
+      "name": "调用后端API写入",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [750, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, message: '书籍同步完成', count: $items().length } }}"
+      },
+      "id": "response",
+      "name": "返回结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1000, 500]
+    }
+  ],
+  "connections": {
+    "定时触发(每天)": {
+      "main": [[{ "node": "生成书籍数据", "type": "main", "index": 0 }]]
+    },
+    "手动触发": {
+      "main": [[{ "node": "生成书籍数据", "type": "main", "index": 0 }]]
+    },
+    "生成书籍数据": {
+      "main": [[{ "node": "调用后端API写入", "type": "main", "index": 0 }]]
+    },
+    "调用后端API写入": {
+      "main": [[{ "node": "返回结果", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

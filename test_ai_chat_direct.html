@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>测试 n8n AI 聊天 - 冀小游</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+    .test-box { background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; }
+    button { background: #52c41a; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; }
+    button:hover { background: #389e0d; }
+    button:disabled { background: #ccc; }
+    input { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 6px; margin: 10px 0; }
+    pre { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 6px; overflow-x: auto; white-space: pre-wrap; }
+    .success { color: #52c41a; }
+    .error { color: #ff4d4f; }
+    .chat-msg { padding: 10px; margin: 5px 0; border-radius: 8px; }
+    .user { background: #e6f7ff; text-align: right; }
+    .assistant { background: #f6ffed; }
+  </style>
+</head>
+<body>
+  <h1>🤖 测试 n8n AI 聊天 - 冀小游</h1>
+  
+  <div class="test-box">
+    <h3>1. 直接测试 n8n Webhook (POST)</h3>
+    <p>测试 URL: <code>http://localhost:5678/webhook/tourism/ai-chat</code></p>
+    <input type="text" id="question" placeholder="输入问题，如：西柏坡有什么好玩的？" value="你好，介绍一下西柏坡">
+    <button onclick="testN8nDirect()">直接调用 n8n</button>
+    <div id="result1"></div>
+  </div>
+
+  <div class="test-box">
+    <h3>2. 通过 Vite 代理测试</h3>
+    <p>测试 URL: <code>http://localhost:3001/webhook/tourism/ai-chat</code></p>
+    <button onclick="testViaProxy()">通过代理调用</button>
+    <div id="result2"></div>
+  </div>
+
+  <div class="test-box">
+    <h3>3. 聊天测试</h3>
+    <div id="chatBox" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 6px; margin-bottom: 10px;"></div>
+    <input type="text" id="chatInput" placeholder="输入消息..." onkeypress="if(event.key==='Enter')sendChat()">
+    <button onclick="sendChat()">发送</button>
+  </div>
+
+  <script>
+    const N8N_DIRECT = 'http://localhost:5678/webhook/tourism/ai-chat';
+    const N8N_PROXY = '/webhook/tourism/ai-chat';
+    
+    async function testN8nDirect() {
+      const question = document.getElementById('question').value;
+      const result = document.getElementById('result1');
+      result.innerHTML = '<p>⏳ 正在调用 n8n...</p>';
+      
+      try {
+        const response = await fetch(N8N_DIRECT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question, sessionId: 'test-' + Date.now() })
+        });
+        
+        const text = await response.text();
+        console.log('Raw response:', text);
+        
+        if (!response.ok) {
+          result.innerHTML = `<p class="error">❌ HTTP ${response.status}</p><pre>${text}</pre>`;
+          return;
+        }
+        
+        if (!text) {
+          result.innerHTML = `<p class="error">❌ 空响应 - 工作流可能未激活或配置错误</p>`;
+          return;
+        }
+        
+        try {
+          const data = JSON.parse(text);
+          result.innerHTML = `<p class="success">✅ 成功!</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+          
+          if (data.answer) {
+            result.innerHTML += `<div class="chat-msg assistant"><strong>冀小游:</strong> ${data.answer}</div>`;
+          }
+        } catch (e) {
+          result.innerHTML = `<p class="error">❌ JSON 解析失败</p><pre>${text}</pre>`;
+        }
+      } catch (e) {
+        result.innerHTML = `<p class="error">❌ 请求失败: ${e.message}</p>
+          <p>可能原因:</p>
+          <ul>
+            <li>n8n 未运行 (检查 http://localhost:5678)</li>
+            <li>工作流未激活</li>
+            <li>CORS 问题 (需要通过代理访问)</li>
+          </ul>`;
+      }
+    }
+    
+    async function testViaProxy() {
+      const question = document.getElementById('question').value;
+      const result = document.getElementById('result2');
+      result.innerHTML = '<p>⏳ 正在通过代理调用...</p>';
+      
+      try {
+        const response = await fetch(N8N_PROXY, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question, sessionId: 'test-' + Date.now() })
+        });
+        
+        const text = await response.text();
+        console.log('Proxy response:', text);
+        
+        if (!response.ok) {
+          result.innerHTML = `<p class="error">❌ HTTP ${response.status}</p><pre>${text}</pre>`;
+          return;
+        }
+        
+        if (!text) {
+          result.innerHTML = `<p class="error">❌ 空响应</p>`;
+          return;
+        }
+        
+        try {
+          const data = JSON.parse(text);
+          result.innerHTML = `<p class="success">✅ 成功!</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+        } catch (e) {
+          result.innerHTML = `<p class="error">❌ JSON 解析失败</p><pre>${text}</pre>`;
+        }
+      } catch (e) {
+        result.innerHTML = `<p class="error">❌ 请求失败: ${e.message}</p>`;
+      }
+    }
+    
+    async function sendChat() {
+      const input = document.getElementById('chatInput');
+      const chatBox = document.getElementById('chatBox');
+      const question = input.value.trim();
+      if (!question) return;
+      
+      chatBox.innerHTML += `<div class="chat-msg user"><strong>你:</strong> ${question}</div>`;
+      input.value = '';
+      
+      try {
+        const response = await fetch(N8N_PROXY, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question, sessionId: 'chat-session' })
+        });
+        
+        const text = await response.text();
+        if (text) {
+          const data = JSON.parse(text);
+          const answer = data.answer || data.message || data.text || '(无回复)';
+          chatBox.innerHTML += `<div class="chat-msg assistant"><strong>🤖 冀小游:</strong> ${answer.replace(/\n/g, '<br>')}</div>`;
+        } else {
+          chatBox.innerHTML += `<div class="chat-msg assistant error"><strong>🤖:</strong> (空响应 - 检查 n8n 工作流)</div>`;
+        }
+      } catch (e) {
+        chatBox.innerHTML += `<div class="chat-msg assistant error"><strong>错误:</strong> ${e.message}</div>`;
+      }
+      
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+  </script>
+</body>
+</html>

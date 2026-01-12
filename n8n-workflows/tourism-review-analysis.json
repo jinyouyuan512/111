@@ -1,0 +1,67 @@
+{
+  "name": "智慧旅游 - 评价分析服务",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/review-analysis",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "v1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "options": { "temperature": 0.6 }
+      },
+      "id": "v2",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [400, 500]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是旅游评价分析专家。\n\n景点：{{ $json.spotName || '西柏坡纪念馆' }}\n评分：{{ $json.rating || 4.9 }}分\n评价数：{{ $json.reviewCount || 12580 }}条\n\n示例评价：\n- 正面：非常有教育意义，讲解员很专业，环境整洁\n- 负面：节假日人多，停车位不够\n\n请分析并返回JSON：\n{\n  \"summary\": \"一句话总结\",\n  \"strengths\": [\"优点1\", \"优点2\", \"优点3\"],\n  \"improvements\": [\"改进点1\", \"改进点2\"],\n  \"bestFor\": [\"适合人群1\", \"适合人群2\"],\n  \"visitTips\": [\"游览建议1\", \"游览建议2\"]\n}\n\n只返回JSON。"
+      },
+      "id": "v3",
+      "name": "AI分析评价",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Webhook').first().json;\nconst spotName = input.spotName || '西柏坡纪念馆';\n\n// 景点评价数据\nconst reviewDB = {\n  '西柏坡纪念馆': { rating: 4.9, reviewCount: 12580, sentiment: 92, keywords: ['历史意义', '爱国教育', '讲解专业', '免费参观'] },\n  '狼牙山五壮士纪念地': { rating: 4.8, reviewCount: 8920, sentiment: 88, keywords: ['英雄事迹', '风景优美', '玻璃栈道', '山路陡峭'] },\n  '白洋淀雁翎队纪念馆': { rating: 4.7, reviewCount: 15680, sentiment: 85, keywords: ['荷花美丽', '船游体验', '嘎子村', '夏季最佳'] },\n  '冉庄地道战遗址': { rating: 4.5, reviewCount: 7890, sentiment: 82, keywords: ['地道战', '亲子研学', '互动体验', '历史教育'] },\n  '董存瑞烈士陵园': { rating: 4.7, reviewCount: 3450, sentiment: 90, keywords: ['英雄纪念', '爱国教育', '免费参观', '环境肃穆'] },\n  '李大钊纪念馆': { rating: 4.8, reviewCount: 5230, sentiment: 91, keywords: ['革命先驱', '历史教育', '免费参观', '展览丰富'] }\n};\n\nconst data = reviewDB[spotName] || { rating: 4.5, reviewCount: 1000, sentiment: 80, keywords: ['值得一去'] };\n\n// 解析AI分析\nlet aiAnalysis = {\n  summary: `${spotName}是河北省重要的红色旅游景点，游客评价良好`,\n  strengths: ['历史文化价值高', '讲解服务专业', '环境整洁'],\n  improvements: ['节假日人流管控', '停车设施'],\n  bestFor: ['历史爱好者', '亲子研学', '党建活动'],\n  visitTips: ['建议提前预约', '避开节假日高峰']\n};\n\ntry {\n  const aiText = $input.first().json.text || '';\n  const match = aiText.match(/\\{[\\s\\S]*\\}/);\n  if (match) aiAnalysis = JSON.parse(match[0]);\n} catch (e) {}\n\n// 构建分析报告\nreturn {\n  success: true,\n  spotName,\n  summary: {\n    rating: data.rating,\n    reviewCount: data.reviewCount,\n    sentimentScore: data.sentiment,\n    recommendation: data.rating >= 4.5 ? '强烈推荐' : data.rating >= 4 ? '推荐' : '一般'\n  },\n  ratingDistribution: {\n    5: Math.round(data.rating * 15),\n    4: Math.round((5 - data.rating) * 20),\n    3: 5,\n    2: 2,\n    1: 1\n  },\n  keywords: data.keywords.map((k, i) => ({ word: k, count: Math.round(data.reviewCount * (0.3 - i * 0.05)), sentiment: 'positive' })),\n  analysis: {\n    summary: aiAnalysis.summary,\n    strengths: aiAnalysis.strengths,\n    improvements: aiAnalysis.improvements,\n    bestFor: aiAnalysis.bestFor,\n    visitTips: aiAnalysis.visitTips\n  },\n  trends: {\n    ratingTrend: 'stable',\n    volumeTrend: data.reviewCount > 10000 ? 'increasing' : 'stable',\n    sentimentTrend: data.sentiment > 85 ? 'improving' : 'stable'\n  },\n  generatedAt: new Date().toISOString()\n};"
+      },
+      "id": "v4",
+      "name": "组装分析",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "v5",
+      "name": "返回结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "AI分析评价", "type": "main", "index": 0 }]] },
+    "OpenAI Chat Model": { "ai_languageModel": [[{ "node": "AI分析评价", "type": "ai_languageModel", "index": 0 }]] },
+    "AI分析评价": { "main": [[{ "node": "组装分析", "type": "main", "index": 0 }]] },
+    "组装分析": { "main": [[{ "node": "返回结果", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

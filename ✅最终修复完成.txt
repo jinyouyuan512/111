@@ -1,0 +1,130 @@
+════════════════════════════════════════════════════════════════
+            ✅ 最终修复完成 - 找到根本原因
+════════════════════════════════════════════════════════════════
+
+根本原因：
+  前端表单的可选字段初始化为空字符串 ''
+  而不是 null 或 undefined
+  
+  空字符串不会被 NOT_EMPTY 策略过滤！
+
+════════════════════════════════════════════════════════════════
+            🔧 已修复
+════════════════════════════════════════════════════════════════
+
+文件：frontend/src/views/CreativeUpload.vue
+
+修改 1 - 表单初始值：
+  之前：
+    categoryType: 1,
+    designConcept: '',
+    coverImage: '',
+    copyrightStatement: '',
+    tags: ''
+  
+  现在：
+    categoryType: undefined,
+    designConcept: undefined,
+    coverImage: undefined,
+    copyrightStatement: undefined,
+    tags: undefined
+
+修改 2 - 数据提交逻辑：
+  确保只在字段有值时才添加到请求中
+
+════════════════════════════════════════════════════════════════
+            🧪 现在测试
+════════════════════════════════════════════════════════════════
+
+重要：必须强制刷新浏览器！
+
+1. 按 Ctrl+Shift+Delete 清除缓存
+   或者
+2. 按 Ctrl+F5 强制刷新
+3. 访问 http://localhost:3002/creative/upload
+4. 填写表单：
+   - 作品标题：测试作品
+   - 作品描述：这是测试描述
+   - 上传文件
+   - 不填写其他可选字段
+5. 打开浏览器控制台（F12）
+6. 点击提交
+7. 查看控制台输出的"提交数据"和"可选字段状态"
+
+════════════════════════════════════════════════════════════════
+            📊 预期结果
+════════════════════════════════════════════════════════════════
+
+控制台应该显示：
+  提交数据: {
+    title: "测试作品",
+    description: "这是测试描述",
+    files: ["http://..."]
+  }
+  
+  可选字段状态: {
+    categoryType: undefined,
+    designConcept: undefined,
+    coverImage: undefined,
+    copyrightStatement: undefined,
+    tags: undefined
+  }
+
+注意：提交数据中不应该包含可选字段！
+
+如果成功：显示"作品上传成功"
+如果失败：查看错误信息
+
+════════════════════════════════════════════════════════════════
+            🔍 为什么之前一直失败？
+════════════════════════════════════════════════════════════════
+
+问题链：
+  1. 前端初始化：categoryType = 1, designConcept = ''
+  2. 前端提交：包含这些字段（即使是空字符串）
+  3. 后端接收：request.getCategoryType() = 1, request.getDesignConcept() = ""
+  4. Service 设置：design.setCategoryType(1), design.setDesignConcept("")
+  5. MyBatis-Plus：NOT_EMPTY 策略检查
+     - categoryType = 1 → 不是 null → 插入 ✓
+     - designConcept = "" → 不是 null，但是空字符串 → 插入 ✓
+  6. SQL 生成：包含所有这些字段
+  7. 数据库：尝试插入空字符串到某个字段
+  8. Error 1048：某个字段不允许空字符串
+
+现在修复：
+  1. 前端初始化：categoryType = undefined, designConcept = undefined
+  2. 前端提交：不包含这些字段
+  3. 后端接收：request.getCategoryType() = null, request.getDesignConcept() = null
+  4. Service 检查：if (request.getCategoryType() != null) → false → 不设置
+  5. MyBatis-Plus：字段未设置 → 不插入
+  6. SQL 生成：只包含必填字段
+  7. 数据库：成功插入
+  8. 成功！🎉
+
+════════════════════════════════════════════════════════════════
+            💡 技术要点
+════════════════════════════════════════════════════════════════
+
+JavaScript/TypeScript：
+  '' (空字符串) ≠ null ≠ undefined
+  
+  '' 是一个有效的字符串值
+  null 表示"没有值"
+  undefined 表示"未定义"
+
+MyBatis-Plus NOT_EMPTY 策略：
+  - 过滤 null
+  - 过滤空字符串 ''
+  - 但前提是字段值确实是 null 或 ''
+  - 如果字段未设置（undefined），则不会插入
+
+最佳实践：
+  - 可选字段初始化为 undefined 或 null
+  - 不要初始化为空字符串 ''
+  - 提交前检查并移除 undefined/null 字段
+
+════════════════════════════════════════════════════════════════
+
+现在就测试吧！记得强制刷新浏览器！
+
+════════════════════════════════════════════════════════════════

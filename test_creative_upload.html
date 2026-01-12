@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>众创空间上传测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        .btn-secondary {
+            background: #718096;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .status.success {
+            background: #f0fff4;
+            border: 1px solid #38a169;
+            color: #22543d;
+        }
+        .status.error {
+            background: #fff5f5;
+            border: 1px solid #e53e3e;
+            color: #742a2a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 众创空间上传测试</h1>
+
+        <div id="statusMessage" class="status success" style="display: none;"></div>
+
+        <div class="form-group">
+            <label>测试账号 Token</label>
+            <input type="text" id="token" placeholder="请先登录获取 token">
+            <small style="color: #666;">提示：访问 test_login_now.html 登录后，token 会自动保存</small>
+        </div>
+
+        <h3 style="margin: 30px 0 20px 0;">上传作品</h3>
+
+        <div class="form-group">
+            <label>作品标题 *</label>
+            <input type="text" id="title" placeholder="请输入作品标题" value="测试作品 - 西柏坡精神海报">
+        </div>
+
+        <div class="form-group">
+            <label>作品分类 *</label>
+            <select id="categoryType">
+                <option value="1">海报设计</option>
+                <option value="2">Logo设计</option>
+                <option value="3">文创产品</option>
+                <option value="4">视频动画</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>作品描述 *</label>
+            <textarea id="description" placeholder="请描述您的作品">这是一个测试作品，展现西柏坡精神的现代设计理念。</textarea>
+        </div>
+
+        <div class="form-group">
+            <label>设计理念</label>
+            <textarea id="designConcept" placeholder="请分享您的设计理念">融合传统红色元素与现代设计风格，传承革命精神。</textarea>
+        </div>
+
+        <div class="form-group">
+            <label>封面图片 URL</label>
+            <input type="text" id="coverImage" placeholder="请输入封面图片URL" value="https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?w=800">
+        </div>
+
+        <div class="form-group">
+            <label>作品文件 URL</label>
+            <input type="text" id="files" placeholder="请输入作品文件URL" value="https://example.com/design.pdf">
+        </div>
+
+        <div class="form-group">
+            <label>版权声明</label>
+            <textarea id="copyrightStatement" placeholder="请输入版权声明">本作品版权归作者所有，仅供学习交流使用。</textarea>
+        </div>
+
+        <button class="btn" onclick="uploadDesign()">上传作品</button>
+        <button class="btn btn-secondary" onclick="getMyDesigns()">查看我的作品</button>
+        <button class="btn btn-secondary" onclick="getAllDesigns()">查看所有作品</button>
+
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8087/api/creative';
+        const resultDiv = document.getElementById('result');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // 页面加载时自动填充 token
+        window.addEventListener('load', () => {
+            const savedToken = localStorage.getItem('token');
+            if (savedToken) {
+                document.getElementById('token').value = savedToken;
+                showStatus('已自动填充登录 token', 'success');
+            }
+        });
+
+        function showStatus(message, type = 'success') {
+            statusMessage.textContent = message;
+            statusMessage.className = `status ${type}`;
+            statusMessage.style.display = 'block';
+            setTimeout(() => {
+                statusMessage.style.display = 'none';
+            }, 3000);
+        }
+
+        function showResult(text) {
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = text;
+        }
+
+        async function uploadDesign() {
+            const token = document.getElementById('token').value;
+            if (!token) {
+                showStatus('请先登录获取 token', 'error');
+                return;
+            }
+
+            const designData = {
+                title: document.getElementById('title').value,
+                categoryType: parseInt(document.getElementById('categoryType').value),
+                description: document.getElementById('description').value,
+                designConcept: document.getElementById('designConcept').value,
+                coverImage: document.getElementById('coverImage').value,
+                files: document.getElementById('files').value,
+                copyrightStatement: document.getElementById('copyrightStatement').value,
+                tags: '测试,西柏坡,红色文化'
+            };
+
+            if (!designData.title || !designData.description) {
+                showStatus('请填写作品标题和描述', 'error');
+                return;
+            }
+
+            try {
+                showResult('正在上传作品...');
+                
+                const response = await fetch(`${API_BASE}/designs`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(designData)
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.code === 200) {
+                    showStatus('✅ 作品上传成功！', 'success');
+                    showResult('上传成功！\n\n' + JSON.stringify(data, null, 2));
+                } else {
+                    showStatus('❌ 上传失败：' + (data.message || '未知错误'), 'error');
+                    showResult('上传失败\n\n' + JSON.stringify(data, null, 2));
+                }
+            } catch (error) {
+                showStatus('❌ 请求失败：' + error.message, 'error');
+                showResult('请求失败\n\n错误: ' + error.message);
+            }
+        }
+
+        async function getMyDesigns() {
+            const token = document.getElementById('token').value;
+            if (!token) {
+                showStatus('请先登录获取 token', 'error');
+                return;
+            }
+
+            try {
+                showResult('正在加载我的作品...');
+                
+                const response = await fetch(`${API_BASE}/designs/my?page=1&size=10`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.code === 200) {
+                    const count = data.data?.records?.length || 0;
+                    showStatus(`✅ 找到 ${count} 件作品`, 'success');
+                    showResult('我的作品\n\n' + JSON.stringify(data, null, 2));
+                } else {
+                    showStatus('❌ 加载失败：' + (data.message || '未知错误'), 'error');
+                    showResult('加载失败\n\n' + JSON.stringify(data, null, 2));
+                }
+            } catch (error) {
+                showStatus('❌ 请求失败：' + error.message, 'error');
+                showResult('请求失败\n\n错误: ' + error.message);
+            }
+        }
+
+        async function getAllDesigns() {
+            try {
+                showResult('正在加载所有作品...');
+                
+                const response = await fetch(`${API_BASE}/designs?page=1&size=10`);
+                const data = await response.json();
+                
+                if (response.ok && data.code === 200) {
+                    const count = data.data?.records?.length || 0;
+                    showStatus(`✅ 找到 ${count} 件作品`, 'success');
+                    showResult('所有作品\n\n' + JSON.stringify(data, null, 2));
+                } else {
+                    showStatus('❌ 加载失败：' + (data.message || '未知错误'), 'error');
+                    showResult('加载失败\n\n' + JSON.stringify(data, null, 2));
+                }
+            } catch (error) {
+                showStatus('❌ 请求失败：' + error.message, 'error');
+                showResult('请求失败\n\n错误: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

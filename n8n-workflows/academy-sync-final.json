@@ -1,0 +1,55 @@
+{
+  "name": "传承学院-数据同步(最终版)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "days", "daysInterval": 1 }]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "每天定时触发",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 生成河北红色新闻和书籍数据\nconst now = new Date();\nconst dateStr = now.toISOString().slice(0, 19).replace('T', ' ');\n\nconst newsItems = [\n  {\n    title: '西柏坡纪念馆举办新中国从这里走来主题展览',\n    summary: '展览全面展示了中共中央在西柏坡的光辉历程，通过珍贵文物、历史照片和多媒体展示，生动再现了那段波澜壮阔的革命岁月。',\n    content: '西柏坡是中国革命史上的重要里程碑。1948年5月至1949年3月，中共中央在这里指挥了辽沈、淮海、平津三大战役，召开了具有伟大历史意义的七届二中全会。',\n    category: '纪念活动',\n    source: '河北日报',\n    author: '记者',\n    external_url: 'https://hebei.hebnews.cn/',\n    is_top: 1,\n    is_hot: 1,\n    publish_time: dateStr,\n    created_at: dateStr\n  },\n  {\n    title: '河北省开展传承红色基因主题教育活动',\n    summary: '全省各地积极组织党员干部深入红色教育基地，接受革命传统教育，推动党史学习教育走深走实。',\n    content: '近日，河北省各地纷纷组织党员干部前往西柏坡、狼牙山、白洋淀等红色教育基地，开展传承红色基因主题教育活动。',\n    category: '教育实践',\n    source: '河北新闻网',\n    author: '记者',\n    external_url: 'https://www.hebnews.cn/',\n    is_top: 0,\n    is_hot: 1,\n    publish_time: dateStr,\n    created_at: dateStr\n  },\n  {\n    title: '狼牙山五壮士纪念地迎来参观高峰',\n    summary: '大批群众前往狼牙山缅怀革命先烈，传承英雄精神，接受爱国主义教育。',\n    content: '狼牙山位于河北省保定市易县，是著名的抗日战争纪念地。1941年，五位八路军战士为掩护群众和主力撤退，在弹尽粮绝后跳崖，谱写了一曲壮烈的英雄赞歌。',\n    category: '红色故事',\n    source: '燕赵都市报',\n    author: '记者',\n    external_url: 'https://yzdsb.hebnews.cn/',\n    is_top: 0,\n    is_hot: 0,\n    publish_time: dateStr,\n    created_at: dateStr\n  },\n  {\n    title: '白洋淀雁翎队纪念馆完成升级改造',\n    summary: '改造后的纪念馆运用现代科技手段，生动再现雁翎队抗日斗争历史，成为雄安新区重要的红色教育基地。',\n    content: '白洋淀雁翎队是抗日战争时期活跃在白洋淀地区的水上游击队，他们利用白洋淀的地理优势，神出鬼没地打击日寇，创造了许多传奇战例。',\n    category: '纪念活动',\n    source: '长城网',\n    author: '记者',\n    external_url: 'https://www.hebnews.cn/xiongan/',\n    is_top: 0,\n    is_hot: 0,\n    publish_time: dateStr,\n    created_at: dateStr\n  },\n  {\n    title: '李大钊故居纪念馆举办专题展览',\n    summary: '展览以播火者为主题，全面展示李大钊同志传播马克思主义、创建中国共产党的光辉历程。',\n    content: '李大钊是中国共产主义运动的先驱，伟大的马克思主义者。他的故居位于河北省唐山市乐亭县，现已成为全国重点文物保护单位和爱国主义教育基地。',\n    category: '红色故事',\n    source: '唐山晚报',\n    author: '记者',\n    external_url: 'https://www.tswb.com.cn/',\n    is_top: 0,\n    is_hot: 0,\n    publish_time: dateStr,\n    created_at: dateStr\n  }\n];\n\nreturn newsItems.map(item => ({ json: item }));"
+      },
+      "id": "generate-news",
+      "name": "生成新闻数据",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "red_news",
+        "columns": "title, summary, content, category, source, author, external_url, is_top, is_hot, publish_time, created_at",
+        "options": {}
+      },
+      "id": "insert-news",
+      "name": "写入新闻到MySQL",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [750, 300],
+      "credentials": {
+        "mySql": {
+          "id": "1",
+          "name": "MySQL jiyi_academy"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "每天定时触发": {
+      "main": [[{ "node": "生成新闻数据", "type": "main", "index": 0 }]]
+    },
+    "生成新闻数据": {
+      "main": [[{ "node": "写入新闻到MySQL", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

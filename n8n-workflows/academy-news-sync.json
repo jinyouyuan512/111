@@ -1,0 +1,89 @@
+{
+  "name": "红色新闻同步工作流",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "hours", "hoursInterval": 6 }]
+        }
+      },
+      "id": "schedule",
+      "name": "定时触发",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "academy/sync-news",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "手动触发",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 生成河北红色新闻数据\nconst newsData = [\n  {\n    title: '西柏坡纪念馆：传承红色基因 赓续精神血脉',\n    summary: '西柏坡纪念馆深入挖掘红色资源，创新展陈方式，让革命历史活起来。',\n    category: '纪念活动',\n    source: '河北日报',\n    externalUrl: 'https://hebei.hebnews.cn/node_50.htm',\n    isTop: true,\n    isHot: true\n  },\n  {\n    title: '河北省举办学党史悟思想主题教育活动',\n    summary: '全省各地党员干部深入学习党史，从百年奋斗历程中汲取智慧和力量。',\n    category: '教育实践',\n    source: '河北新闻网',\n    externalUrl: 'https://www.hebnews.cn/',\n    isTop: false,\n    isHot: true\n  },\n  {\n    title: '狼牙山五壮士精神永放光芒',\n    summary: '狼牙山五壮士纪念馆迎来参观高峰，革命精神代代相传。',\n    category: '红色故事',\n    source: '保定日报',\n    externalUrl: 'https://www.bdnews.cn/',\n    isTop: false,\n    isHot: false\n  },\n  {\n    title: '塞罕坝：从荒原到林海的绿色奇迹',\n    summary: '三代塞罕坝人艰苦奋斗，创造了世界上最大的人工林。',\n    category: '教育实践',\n    source: '承德日报',\n    externalUrl: 'https://www.cdnews.cn/',\n    isTop: false,\n    isHot: true\n  },\n  {\n    title: '白洋淀雁翎队：水上游击战的传奇',\n    summary: '雁翎队纪念馆完成升级改造，生动再现抗战历史。',\n    category: '红色故事',\n    source: '雄安发布',\n    externalUrl: 'https://www.hebnews.cn/xiongan/',\n    isTop: false,\n    isHot: false\n  }\n];\n\nreturn newsData.map(news => ({ json: news }));"
+      },
+      "id": "generate",
+      "name": "生成新闻数据",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8088/api/academy/news",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "save-api",
+      "name": "保存到后端",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, message: '新闻同步完成', count: $items.length } }}"
+      },
+      "id": "respond",
+      "name": "返回结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 500]
+    }
+  ],
+  "connections": {
+    "定时触发": {
+      "main": [[{ "node": "生成新闻数据", "type": "main", "index": 0 }]]
+    },
+    "手动触发": {
+      "main": [[{ "node": "生成新闻数据", "type": "main", "index": 0 }]]
+    },
+    "生成新闻数据": {
+      "main": [[{ "node": "保存到后端", "type": "main", "index": 0 }]]
+    },
+    "保存到后端": {
+      "main": [[{ "node": "返回结果", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "instanceId": "jiyi-red-route"
+  },
+  "tags": []
+}

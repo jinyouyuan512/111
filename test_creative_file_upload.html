@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>创意作品文件上传测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .file-upload {
+            border: 2px dashed #d0d0d0;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .file-upload:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .file-upload.dragover {
+            border-color: #667eea;
+            background: #f0f2ff;
+        }
+
+        .file-upload input[type="file"] {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .upload-text {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .preview-area {
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .preview-item {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #e0e0e0;
+        }
+
+        .preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .preview-item .remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        .file-list {
+            margin-top: 15px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-icon {
+            font-size: 24px;
+        }
+
+        .file-name {
+            font-size: 14px;
+            color: #333;
+        }
+
+        .file-size {
+            font-size: 12px;
+            color: #999;
+        }
+
+        button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+
+        .result h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .result pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 创意作品文件上传测试</h1>
+        <p class="subtitle">测试封面图片和作品文件的上传功能</p>
+
+        <!-- 基本信息 -->
+        <div class="section">
+            <div class="section-title">📝 基本信息</div>
+            
+            <div class="form-group">
+                <label>作品标题 *</label>
+                <input type="text" id="title" placeholder="请输入作品标题" value="西柏坡红色文化海报设计">
+            </div>
+
+            <div class="form-group">
+                <label>作品分类 *</label>
+                <select id="categoryType">
+                    <option value="1">海报设计</option>
+                    <option value="2">Logo设计</option>
+                    <option value="3">文创产品</option>
+                    <option value="4">视频动画</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>作品描述 *</label>
+                <textarea id="description" placeholder="请详细描述您的作品">这是一幅以西柏坡为主题的红色文化海报设计，融合了革命历史元素和现代设计理念。</textarea>
+            </div>
+
+            <div class="form-group">
+                <label>设计理念</label>
+                <textarea id="designConcept" placeholder="请分享您的设计理念">通过简洁的视觉语言，传达西柏坡精神的深刻内涵，让红色文化更贴近年轻人。</textarea>
+            </div>
+        </div>
+
+        <!-- 封面图片上传 -->
+        <div class="section">
+            <div class="section-title">🖼️ 封面图片</div>
+            
+            <div class="file-upload" id="coverUploadArea">
+                <input type="file" id="coverInput" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
+                <div class="upload-icon">📷</div>
+                <div class="upload-text">
+                    <strong>点击或拖拽上传封面图片</strong><br>
+                    支持 JPG、PNG、GIF、WEBP，大小不超过 10MB
+                </div>
+            </div>
+            
+            <div class="preview-area" id="coverPreview"></div>
+        </div>
+
+        <!-- 作品文件上传 -->
+        <div class="section">
+            <div class="section-title">📁 作品文件</div>
+            
+            <div class="file-upload" id="workFilesUploadArea">
+                <input type="file" id="workFilesInput" accept="image/*,video/*,.pdf,.psd,.ai,.sketch" multiple>
+                <div class="upload-icon">📎</div>
+                <div class="upload-text">
+                    <strong>点击或拖拽上传作品文件</strong><br>
+                    支持图片、视频、PDF、PSD、AI、Sketch 等格式<br>
+                    最多上传 5 个文件，单个文件不超过 100MB
+                </div>
+            </div>
+            
+            <div class="file-list" id="workFilesList"></div>
+        </div>
+
+        <!-- 版权信息 -->
+        <div class="section">
+            <div class="section-title">©️ 版权信息</div>
+            
+            <div class="form-group">
+                <label>版权声明</label>
+                <textarea id="copyrightStatement" placeholder="请输入版权声明">本作品版权归作者所有，仅供学习交流使用，未经授权不得用于商业用途。</textarea>
+            </div>
+
+            <div class="form-group">
+                <label>作品标签</label>
+                <input type="text" id="tags" placeholder="多个标签用逗号分隔" value="西柏坡,红色文化,海报设计,革命历史">
+            </div>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="button-group">
+            <button class="btn-secondary" onclick="resetForm()">重置表单</button>
+            <button class="btn-primary" onclick="submitWork()">提交作品</button>
+        </div>
+
+        <!-- 结果显示 -->
+        <div id="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8083/api';
+        let coverImageUrl = '';
+        let workFileUrls = [];
+        let userId = null;
+
+        // 初始化
+        async function init() {
+            // 获取用户信息
+            try {
+                const token = localStorage.getItem('token');
+                if (token) {
+                    const response = await fetch(`http://localhost:8081/api/users/me`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    if (response.ok) {
+                        const result = await response.json();
+                        userId = result.data.id;
+                        console.log('用户ID:', userId);
+                    }
+                }
+            } catch (error) {
+                console.error('获取用户信息失败:', error);
+            }
+
+            setupFileUpload();
+        }
+
+        // 设置文件上传
+        function setupFileUpload() {
+            // 封面图片上传
+            const coverUploadArea = document.getElementById('coverUploadArea');
+            const coverInput = document.getElementById('coverInput');
+
+            coverUploadArea.onclick = () => coverInput.click();
+            coverInput.onchange = (e) => handleCoverUpload(e.target.files[0]);
+
+            // 拖拽上传
+            coverUploadArea.ondragover = (e) => {
+                e.preventDefault();
+                coverUploadArea.classList.add('dragover');
+            };
+            coverUploadArea.ondragleave = () => {
+                coverUploadArea.classList.remove('dragover');
+            };
+            coverUploadArea.ondrop = (e) => {
+                e.preventDefault();
+                coverUploadArea.classList.remove('dragover');
+                if (e.dataTransfer.files.length > 0) {
+                    handleCoverUpload(e.dataTransfer.files[0]);
+                }
+            };
+
+            // 作品文件上传
+            const workFilesUploadArea = document.getElementById('workFilesUploadArea');
+            const workFilesInput = document.getElementById('workFilesInput');
+
+            workFilesUploadArea.onclick = () => workFilesInput.click();
+            workFilesInput.onchange = (e) => handleWorkFilesUpload(Array.from(e.target.files));
+
+            workFilesUploadArea.ondragover = (e) => {
+                e.preventDefault();
+                workFilesUploadArea.classList.add('dragover');
+            };
+            workFilesUploadArea.ondragleave = () => {
+                workFilesUploadArea.classList.remove('dragover');
+            };
+            workFilesUploadArea.ondrop = (e) => {
+                e.preventDefault();
+                workFilesUploadArea.classList.remove('dragover');
+                if (e.dataTransfer.files.length > 0) {
+                    handleWorkFilesUpload(Array.from(e.dataTransfer.files));
+                }
+            };
+        }
+
+        // 处理封面上传
+        async function handleCoverUpload(file) {
+            if (!file) return;
+
+            // 验证文件类型
+            if (!file.type.startsWith('image/')) {
+                alert('只能上传图片文件！');
+                return;
+            }
+
+            // 验证文件大小
+            if (file.size > 10 * 1024 * 1024) {
+                alert('图片大小不能超过 10MB！');
+                return;
+            }
+
+            showStatus('loading', '正在上传封面图片...');
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const token = localStorage.getItem('token');
+                const headers = {};
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                if (userId) {
+                    headers['X-User-Id'] = userId;
+                }
+
+                const response = await fetch(`${API_BASE}/upload/image`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (result.code === 200) {
+                    coverImageUrl = result.data.url;
+                    showCoverPreview(coverImageUrl);
+                    showStatus('success', '封面上传成功！');
+                } else {
+                    showStatus('error', `上传失败: ${result.message}`);
+                }
+            } catch (error) {
+                console.error('上传失败:', error);
+                showStatus('error', `上传失败: ${error.message}`);
+            }
+        }
+
+        // 显示封面预览
+        function showCoverPreview(url) {
+            const preview = document.getElementById('coverPreview');
+            preview.innerHTML = `
+                <div class="preview-item">
+                    <img src="${url}" alt="封面预览">
+                    <button class="remove-btn" onclick="removeCover()">×</button>
+                </div>
+            `;
+        }
+
+        // 移除封面
+        function removeCover() {
+            coverImageUrl = '';
+            document.getElementById('coverPreview').innerHTML = '';
+            document.getElementById('coverInput').value = '';
+        }
+
+        // 处理作品文件上传
+        async function handleWorkFilesUpload(files) {
+            if (files.length === 0) return;
+
+            // 验证文件数量
+            if (workFileUrls.length + files.length > 5) {
+                alert('最多只能上传 5 个文件！');
+                return;
+            }
+
+            showStatus('loading', '正在上传作品文件...');
+
+            for (const file of files) {
+                // 验证文件大小
+                if (file.size > 100 * 1024 * 1024) {
+                    alert(`文件 ${file.name} 大小超过 100MB，已跳过`);
+                    continue;
+                }
+
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    const token = localStorage.getItem('token');
+                    const headers = {};
+                    if (token) {
+                        headers['Authorization'] = `Bearer ${token}`;
+                    }
+                    if (userId) {
+                        headers['X-User-Id'] = userId;
+                    }
+
+                    // 根据文件类型选择上传接口
+                    let uploadUrl = `${API_BASE}/upload/image`;
+                    if (file.type.startsWith('video/')) {
+                        uploadUrl = `${API_BASE}/upload/video`;
+                    }
+
+                    const response = await fetch(uploadUrl, {
+                        method: 'POST',
+                        headers: headers,
+                        body: formData
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result.code === 200) {
+                        workFileUrls.push(result.data.url);
+                        addWorkFileToList(file.name, result.data.url, file.size);
+                    } else {
+                        alert(`文件 ${file.name} 上传失败: ${result.message}`);
+                    }
+                } catch (error) {
+                    console.error('上传失败:', error);
+                    alert(`文件 ${file.name} 上传失败: ${error.message}`);
+                }
+            }
+
+            showStatus('success', '作品文件上传完成！');
+        }
+
+        // 添加文件到列表
+        function addWorkFileToList(name, url, size) {
+            const list = document.getElementById('workFilesList');
+            const sizeText = formatFileSize(size);
+            
+            const item = document.createElement('div');
+            item.className = 'file-item';
+            item.innerHTML = `
+                <div class="file-info">
+                    <span class="file-icon">📄</span>
+                    <div>
+                        <div class="file-name">${name}</div>
+                        <div class="file-size">${sizeText}</div>
+                    </div>
+                </div>
+                <button class="btn-danger" onclick="removeWorkFile('${url}', this)">删除</button>
+            `;
+            
+            list.appendChild(item);
+        }
+
+        // 移除作品文件
+        function removeWorkFile(url, button) {
+            const index = workFileUrls.indexOf(url);
+            if (index > -1) {
+                workFileUrls.splice(index, 1);
+            }
+            button.parentElement.remove();
+        }
+
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        // 提交作品
+        async function submitWork() {
+            // 验证必填项
+            const title = document.getElementById('title').value.trim();
+            const categoryType = parseInt(document.getElementById('categoryType').value);
+            const description = document.getElementById('description').value.trim();
+
+            if (!title) {
+                alert('请输入作品标题');
+                return;
+            }
+
+            if (!description) {
+                alert('请输入作品描述');
+                return;
+            }
+
+            if (!coverImageUrl) {
+                alert('请上传封面图片');
+                return;
+            }
+
+            if (workFileUrls.length === 0) {
+                alert('请上传至少一个作品文件');
+                return;
+            }
+
+            showStatus('loading', '正在提交作品...');
+
+            try {
+                const designData = {
+                    title: title,
+                    categoryType: categoryType,
+                    description: description,
+                    designConcept: document.getElementById('designConcept').value.trim(),
+                    coverImage: coverImageUrl,
+                    files: workFileUrls.join(','),
+                    copyrightStatement: document.getElementById('copyrightStatement').value.trim(),
+                    tags: document.getElementById('tags').value.trim()
+                };
+
+                const token = localStorage.getItem('token');
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                if (userId) {
+                    headers['X-User-Id'] = userId;
+                }
+
+                const response = await fetch(`${API_BASE}/creative/designs`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(designData)
+                });
+
+                const result = await response.json();
+                
+                if (result.code === 200) {
+                    showResult('success', '作品提交成功！', result);
+                } else {
+                    showResult('error', `提交失败: ${result.message}`, result);
+                }
+            } catch (error) {
+                console.error('提交失败:', error);
+                showResult('error', `提交失败: ${error.message}`, { error: error.message });
+            }
+        }
+
+        // 重置表单
+        function resetForm() {
+            document.getElementById('title').value = '';
+            document.getElementById('categoryType').value = '1';
+            document.getElementById('description').value = '';
+            document.getElementById('designConcept').value = '';
+            document.getElementById('copyrightStatement').value = '';
+            document.getElementById('tags').value = '';
+            
+            removeCover();
+            workFileUrls = [];
+            document.getElementById('workFilesList').innerHTML = '';
+            document.getElementById('workFilesInput').value = '';
+            
+            document.getElementById('result').style.display = 'none';
+        }
+
+        // 显示状态
+        function showStatus(type, message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        // 显示结果
+        function showResult(type, message, data) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `
+                <div class="status ${type}">${message}</div>
+                <h3>响应数据：</h3>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+        }
+
+        // 页面加载完成后初始化
+        window.onload = init;
+    </script>
+</body>
+</html>

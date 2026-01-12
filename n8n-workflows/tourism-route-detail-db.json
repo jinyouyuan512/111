@@ -1,0 +1,105 @@
+{
+  "name": "智慧旅游-路线详情(数据库)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/route-detail",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT r.* FROM route r WHERE r.id = {{ $json.body.routeId }}",
+        "options": {}
+      },
+      "id": "mysql-route",
+      "name": "获取路线",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.3,
+      "position": [450, 300],
+      "credentials": {
+        "mySql": {
+          "id": "mysql-jiyi",
+          "name": "MySQL jiyi_tourism"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT ra.*, a.name, a.description, a.address, a.ticket_price, a.opening_hours, a.rating, a.images\nFROM route_attraction ra\nJOIN attraction a ON ra.attraction_id = a.id\nWHERE ra.route_id = {{ $('Webhook').item.json.body.routeId }}\nORDER BY ra.day_num, ra.order_num",
+        "options": {}
+      },
+      "id": "mysql-spots",
+      "name": "获取景点",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.3,
+      "position": [450, 500],
+      "credentials": {
+        "mySql": {
+          "id": "mysql-jiyi",
+          "name": "MySQL jiyi_tourism"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "mergeByFields": {
+          "values": []
+        },
+        "options": {}
+      },
+      "id": "merge",
+      "name": "合并数据",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "const route = $('获取路线').first().json;\nconst spots = $('获取景点').all().map(s => s.json);\n\n// 按天分组景点\nconst dayGroups = {};\nspots.forEach(spot => {\n  const day = spot.day_num || 1;\n  if (!dayGroups[day]) dayGroups[day] = [];\n  dayGroups[day].push({\n    id: spot.attraction_id,\n    name: spot.name,\n    description: spot.description,\n    address: spot.address,\n    ticketPrice: spot.ticket_price,\n    openingHours: spot.opening_hours,\n    rating: spot.rating,\n    visitTime: spot.visit_time,\n    notes: spot.notes,\n    order: spot.order_num\n  });\n});\n\nconst days = Object.keys(dayGroups).map(day => ({\n  day: parseInt(day),\n  spots: dayGroups[day]\n}));\n\nreturn [{\n  json: {\n    success: true,\n    route: {\n      id: route.id,\n      name: route.name,\n      description: route.description,\n      days: route.days,\n      estimatedCost: route.estimated_cost,\n      difficulty: route.difficulty,\n      season: route.season,\n      tags: route.tags ? JSON.parse(route.tags) : [],\n      coverImage: route.cover_image,\n      dayPlans: days\n    }\n  }\n}];"
+      },
+      "id": "code-format",
+      "name": "格式化",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      },
+      "id": "respond",
+      "name": "响应",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 400]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "获取路线", "type": "main", "index": 0 }, { "node": "获取景点", "type": "main", "index": 0 }]] },
+    "获取路线": { "main": [[{ "node": "合并数据", "type": "main", "index": 0 }]] },
+    "获取景点": { "main": [[{ "node": "合并数据", "type": "main", "index": 1 }]] },
+    "合并数据": { "main": [[{ "node": "格式化", "type": "main", "index": 0 }]] },
+    "格式化": { "main": [[{ "node": "响应", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "tourism" }]
+}

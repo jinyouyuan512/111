@@ -1,0 +1,67 @@
+{
+  "name": "智慧旅游 - 智能推荐引擎",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/personalized-recommend",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "r1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "options": { "temperature": 0.7 }
+      },
+      "id": "r2",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [400, 500]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是河北红色旅游智能推荐专家。\n\n用户偏好：\n- 兴趣：{{ $json.interests ? $json.interests.join('、') : '红色文化' }}\n- 出行风格：{{ $json.travelStyle || '休闲' }}\n- 行程节奏：{{ $json.pace || 'moderate' }}\n- 出行人群：{{ $json.groupType || 'couple' }}\n- 预算：{{ $json.budget || 'medium' }}\n- 天数：{{ $json.days || 2 }}天\n\n可选景点库：\n1. 西柏坡纪念馆 - 石家庄 - 免费 - 革命圣地/爱国教育\n2. 狼牙山五壮士纪念地 - 保定 - 80元 - 抗战遗址/自然风光\n3. 白洋淀雁翎队纪念馆 - 保定 - 40元 - 水乡风情/抗日传奇\n4. 冉庄地道战遗址 - 保定 - 30元 - 抗战遗址/亲子研学\n5. 晋察冀边区革命纪念馆 - 保定 - 免费 - 革命历史\n6. 董存瑞烈士陵园 - 承德 - 免费 - 英雄纪念\n7. 李大钊纪念馆 - 唐山 - 免费 - 革命先驱\n8. 八路军一二九师司令部旧址 - 邯郸 - 免费 - 抗战指挥部\n\n请根据用户偏好推荐3-5条路线，返回JSON数组：\n[{\"id\":\"rec-1\",\"title\":\"路线名称\",\"description\":\"一句话描述\",\"matchScore\":95,\"matchReasons\":[\"原因1\",\"原因2\"],\"spots\":[\"景点1\",\"景点2\"],\"duration\":\"2天\",\"difficulty\":\"轻松/中等/挑战\",\"highlights\":[\"亮点1\",\"亮点2\"],\"estimatedCost\":500,\"bestSeason\":[\"春季\",\"秋季\"],\"tags\":[\"标签1\",\"标签2\"]}]\n\n只返回JSON数组，不要其他内容。"
+      },
+      "id": "r3",
+      "name": "AI推荐引擎",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Webhook').first().json;\nconst interests = input.interests || ['红色文化'];\nconst limit = input.limit || 5;\n\n// 默认推荐数据\nconst defaultRecs = [\n  {\n    id: 'rec-1',\n    title: '西柏坡红色经典之旅',\n    description: '探访新中国从这里走来的革命圣地',\n    matchScore: 95,\n    matchReasons: ['革命圣地必游', '免费开放'],\n    spots: ['西柏坡纪念馆', '七届二中全会会址', '毛泽东旧居'],\n    duration: '1天',\n    difficulty: '轻松',\n    highlights: ['新中国从这里走来', '三大战役指挥中心'],\n    estimatedCost: 250,\n    bestSeason: ['春季', '秋季'],\n    tags: ['红色文化', '革命圣地', '免费']\n  },\n  {\n    id: 'rec-2',\n    title: '保定红色文化深度游',\n    description: '狼牙山+白洋淀，英雄故事与水乡风情',\n    matchScore: 90,\n    matchReasons: ['经典抗战遗址', '自然风光优美'],\n    spots: ['狼牙山五壮士纪念地', '白洋淀雁翎队纪念馆', '冉庄地道战遗址'],\n    duration: '2天',\n    difficulty: '中等',\n    highlights: ['五壮士跳崖处', '水上游击队传奇', '地道战体验'],\n    estimatedCost: 800,\n    bestSeason: ['夏季', '秋季'],\n    tags: ['抗战遗址', '自然风光', '亲子研学']\n  },\n  {\n    id: 'rec-3',\n    title: '太行山红色生态游',\n    description: '刘邓大军指挥部与太行风光',\n    matchScore: 85,\n    matchReasons: ['抗战指挥中心', '山水风光'],\n    spots: ['八路军一二九师司令部旧址', '将军岭', '太行山大峡谷'],\n    duration: '2天',\n    difficulty: '中等',\n    highlights: ['刘邓大军指挥部', '将军岭缅怀先烈'],\n    estimatedCost: 700,\n    bestSeason: ['春季', '秋季'],\n    tags: ['抗战遗址', '自然风光', '徒步']\n  },\n  {\n    id: 'rec-4',\n    title: '革命先驱纪念之旅',\n    description: '追寻李大钊、董存瑞等英雄足迹',\n    matchScore: 82,\n    matchReasons: ['缅怀革命先烈', '全程免费'],\n    spots: ['李大钊纪念馆', '董存瑞烈士陵园'],\n    duration: '2天',\n    difficulty: '轻松',\n    highlights: ['中国共产主义先驱', '舍身炸碉堡英雄'],\n    estimatedCost: 400,\n    bestSeason: ['全年'],\n    tags: ['英雄纪念', '爱国教育', '免费']\n  },\n  {\n    id: 'rec-5',\n    title: '白洋淀亲子研学游',\n    description: '寓教于乐的红色水乡之旅',\n    matchScore: 88,\n    matchReasons: ['适合亲子', '互动体验丰富'],\n    spots: ['白洋淀雁翎队纪念馆', '荷花大观园', '冉庄地道战遗址'],\n    duration: '1天',\n    difficulty: '轻松',\n    highlights: ['水上游击队故事', '地道战体验'],\n    estimatedCost: 350,\n    bestSeason: ['夏季'],\n    tags: ['亲子研学', '水乡风情', '互动体验']\n  }\n];\n\nlet recommendations = [];\n\ntry {\n  const aiText = $input.first().json.text || '';\n  const match = aiText.match(/\\[[\\s\\S]*\\]/);\n  if (match) {\n    recommendations = JSON.parse(match[0]);\n  }\n} catch (e) {\n  // AI解析失败，使用规则匹配\n}\n\n// 如果AI没有返回有效结果，使用默认推荐并计算匹配度\nif (!recommendations || recommendations.length === 0) {\n  recommendations = defaultRecs.map(rec => {\n    let score = rec.matchScore;\n    const reasons = [...rec.matchReasons];\n    \n    // 兴趣匹配加分\n    const matchedTags = rec.tags.filter(t => interests.some(i => t.includes(i) || i.includes(t)));\n    if (matchedTags.length > 0) {\n      score = Math.min(score + matchedTags.length * 2, 100);\n      reasons.push(`符合${matchedTags.join('、')}兴趣`);\n    }\n    \n    // 人群匹配\n    if (input.groupType === 'family' && rec.tags.includes('亲子研学')) {\n      score = Math.min(score + 5, 100);\n      reasons.push('适合家庭出行');\n    }\n    \n    // 预算匹配\n    if (input.budget === 'low' && rec.estimatedCost < 400) {\n      score = Math.min(score + 3, 100);\n      reasons.push('符合预算');\n    }\n    \n    return { ...rec, matchScore: score, matchReasons: reasons.slice(0, 4) };\n  });\n}\n\n// 排序并限制数量\nrecommendations.sort((a, b) => b.matchScore - a.matchScore);\nrecommendations = recommendations.slice(0, limit);\n\nreturn {\n  success: true,\n  userPreferences: {\n    interests,\n    travelStyle: input.travelStyle || '休闲',\n    pace: input.pace || 'moderate',\n    groupType: input.groupType || 'couple',\n    budget: input.budget || 'medium',\n    days: input.days || 2\n  },\n  recommendations,\n  total: recommendations.length,\n  generatedAt: new Date().toISOString()\n};"
+      },
+      "id": "r4",
+      "name": "处理推荐结果",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "r5",
+      "name": "返回结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "AI推荐引擎", "type": "main", "index": 0 }]] },
+    "OpenAI Chat Model": { "ai_languageModel": [[{ "node": "AI推荐引擎", "type": "ai_languageModel", "index": 0 }]] },
+    "AI推荐引擎": { "main": [[{ "node": "处理推荐结果", "type": "main", "index": 0 }]] },
+    "处理推荐结果": { "main": [[{ "node": "返回结果", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

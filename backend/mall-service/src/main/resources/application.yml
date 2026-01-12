@@ -1,0 +1,64 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: mall-service
+  
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/jiyi_mall?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: root
+    password: root
+  
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 5
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+  
+  cloud:
+    compatibility-verifier:
+      enabled: false
+    nacos:
+      discovery:
+        enabled: false
+        server-addr: localhost:8848
+        namespace: dev
+        group: JIYI_GROUP
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  mapper-locations: classpath:mapper/*.xml
+
+# Knife4j配置
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+
+# 日志配置
+logging:
+  level:
+    com.jiyi.mall: debug
+    com.jiyi.mall.mapper: debug

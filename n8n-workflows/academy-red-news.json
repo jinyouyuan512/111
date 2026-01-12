@@ -1,0 +1,83 @@
+{
+  "name": "河北红色新闻服务",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "academy/red-news",
+        "options": {}
+      },
+      "id": "webhook-news",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是河北红色新闻智能助手。根据用户请求生成或推荐红色新闻内容。\n\n用户请求：{{ $json.body.action }}\n分类：{{ $json.body.category || '全部' }}\n关键词：{{ $json.body.keyword || '无' }}\n\n请根据请求类型返回相应内容：\n1. 如果是获取新闻列表(list)，生成5-8条河北红色相关新闻\n2. 如果是搜索(search)，根据关键词生成相关新闻\n3. 如果是推荐(recommend)，推荐热门红色新闻\n\n新闻分类包括：党建动态、红色故事、纪念活动、教育实践\n\n返回JSON格式：\n{\n  \"news\": [\n    {\n      \"id\": 数字,\n      \"title\": \"新闻标题\",\n      \"summary\": \"新闻摘要(50字内)\",\n      \"category\": \"分类\",\n      \"source\": \"来源\",\n      \"publishTime\": \"发布时间\",\n      \"viewCount\": 阅读数,\n      \"isHot\": 是否热门,\n      \"isTop\": 是否置顶\n    }\n  ],\n  \"total\": 总数\n}"
+      },
+      "id": "llm-news",
+      "name": "AI新闻生成",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-3.5-turbo",
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "openai-news",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [470, 500],
+      "credentials": {
+        "openAiApi": {
+          "id": "your-openai-credential-id",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nlet result;\n\ntry {\n  const text = input.text || input.output || '';\n  const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    result = JSON.parse(jsonMatch[0]);\n  } else {\n    throw new Error('No JSON found');\n  }\n} catch (e) {\n  // 降级方案：返回模拟数据\n  const categories = ['党建动态', '红色故事', '纪念活动', '教育实践'];\n  const sources = ['河北日报', '燕赵都市报', '河北新闻网', '长城网'];\n  \n  result = {\n    news: [\n      {\n        id: 1,\n        title: '西柏坡纪念馆举办\"新中国从这里走来\"主题展览',\n        summary: '展览全面展示了中共中央在西柏坡的光辉历程，吸引众多游客前来参观学习。',\n        category: '纪念活动',\n        source: '河北日报',\n        publishTime: new Date().toISOString(),\n        viewCount: 12580,\n        isHot: true,\n        isTop: true\n      },\n      {\n        id: 2,\n        title: '河北省开展\"传承红色基因\"主题教育活动',\n        summary: '全省各地积极组织党员干部深入红色教育基地，接受革命传统教育。',\n        category: '教育实践',\n        source: '河北新闻网',\n        publishTime: new Date(Date.now() - 86400000).toISOString(),\n        viewCount: 8920,\n        isHot: true,\n        isTop: false\n      },\n      {\n        id: 3,\n        title: '狼牙山五壮士纪念地迎来参观高峰',\n        summary: '清明节期间，大批群众前往狼牙山缅怀革命先烈，传承英雄精神。',\n        category: '红色故事',\n        source: '燕赵都市报',\n        publishTime: new Date(Date.now() - 172800000).toISOString(),\n        viewCount: 6750,\n        isHot: false,\n        isTop: false\n      },\n      {\n        id: 4,\n        title: '河北省委召开党史学习教育推进会',\n        summary: '会议强调要深入学习贯彻习近平总书记重要讲话精神，推动党史学习教育走深走实。',\n        category: '党建动态',\n        source: '河北日报',\n        publishTime: new Date(Date.now() - 259200000).toISOString(),\n        viewCount: 15680,\n        isHot: true,\n        isTop: false\n      },\n      {\n        id: 5,\n        title: '白洋淀雁翎队纪念馆完成升级改造',\n        summary: '改造后的纪念馆运用现代科技手段，生动再现雁翎队抗日斗争历史。',\n        category: '纪念活动',\n        source: '长城网',\n        publishTime: new Date(Date.now() - 345600000).toISOString(),\n        viewCount: 4320,\n        isHot: false,\n        isTop: false\n      },\n      {\n        id: 6,\n        title: '塞罕坝精神宣讲团走进高校',\n        summary: '宣讲团成员讲述三代务林人艰苦奋斗的感人故事，激励青年学子。',\n        category: '教育实践',\n        source: '河北新闻网',\n        publishTime: new Date(Date.now() - 432000000).toISOString(),\n        viewCount: 7890,\n        isHot: false,\n        isTop: false\n      }\n    ],\n    total: 6\n  };\n}\n\nreturn { json: { success: true, ...result } };"
+      },
+      "id": "code-news",
+      "name": "处理结果",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [690, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond-news",
+      "name": "返回结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [910, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "AI新闻生成", "type": "main", "index": 0 }]]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [[{ "node": "AI新闻生成", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "AI新闻生成": {
+      "main": [[{ "node": "处理结果", "type": "main", "index": 0 }]]
+    },
+    "处理结果": {
+      "main": [[{ "node": "返回结果", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

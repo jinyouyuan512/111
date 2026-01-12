@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>冀忆红途 - 功能测试（无需登录）</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        h1 {
+            color: #a0182f;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        .status {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .status-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        .status-card.success {
+            border-left: 5px solid #10b981;
+        }
+        .status-card.error {
+            border-left: 5px solid #ef4444;
+        }
+        .status-card.warning {
+            border-left: 5px solid #f59e0b;
+        }
+        .status-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+        .status-desc {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .test-section {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-section h2 {
+            color: #a0182f;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .test-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .btn {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #a0182f, #c41e3a);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(160, 24, 47, 0.3);
+        }
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+        }
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background: #f9fafb;
+            display: none;
+        }
+        .result.show {
+            display: block;
+        }
+        .result pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.9rem;
+        }
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .alert-warning {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            color: #92400e;
+        }
+        .alert-info {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            color: #1e40af;
+        }
+        .alert-success {
+            background: #d1fae5;
+            border-left: 4px solid #10b981;
+            color: #065f46;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 冀忆红途 - 功能测试</h1>
+            <p class="subtitle">无需登录即可测试部分功能</p>
+        </div>
+
+        <div class="alert alert-warning">
+            <strong>⚠️ 注意：</strong> User Service未启动（需要Redis），登录功能暂时不可用。但您可以测试以下功能：
+        </div>
+
+        <div class="status">
+            <div class="status-card success">
+                <div class="status-title">✅ Frontend</div>
+                <div class="status-desc">端口 3001 - 正常运行</div>
+            </div>
+            <div class="status-card success">
+                <div class="status-title">✅ Mall Service</div>
+                <div class="status-desc">端口 8085 - 正常运行</div>
+            </div>
+            <div class="status-card success">
+                <div class="status-title">✅ Social Service</div>
+                <div class="status-desc">端口 8083 - 正常运行</div>
+            </div>
+            <div class="status-card error">
+                <div class="status-title">❌ User Service</div>
+                <div class="status-desc">需要Redis才能启动</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🌐 前端页面访问</h2>
+            <p style="margin-bottom: 15px; color: #666;">直接访问前端页面，查看界面效果</p>
+            <div class="test-buttons">
+                <a href="http://localhost:3001" target="_blank" class="btn btn-primary">首页</a>
+                <a href="http://localhost:3001/mall" target="_blank" class="btn btn-primary">商城</a>
+                <a href="http://localhost:3001/social" target="_blank" class="btn btn-primary">社交平台</a>
+                <a href="http://localhost:3001/creative" target="_blank" class="btn btn-primary">众创空间 ✨</a>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🛍️ 商城API测试</h2>
+            <p style="margin-bottom: 15px; color: #666;">测试商城服务的API接口</p>
+            <div class="test-buttons">
+                <button class="btn btn-secondary" onclick="testMallProducts()">获取商品列表</button>
+                <button class="btn btn-secondary" onclick="testMallCategories()">获取商品分类</button>
+                <a href="http://localhost:8085/doc.html" target="_blank" class="btn btn-secondary">API文档</a>
+            </div>
+            <div id="mall-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>💬 社交API测试</h2>
+            <p style="margin-bottom: 15px; color: #666;">测试社交服务的API接口</p>
+            <div class="test-buttons">
+                <button class="btn btn-secondary" onclick="testSocialPosts()">获取动态列表</button>
+                <button class="btn btn-secondary" onclick="testHotTopics()">获取热门话题</button>
+                <a href="http://localhost:8083/doc.html" target="_blank" class="btn btn-secondary">API文档</a>
+            </div>
+            <div id="social-result" class="result"></div>
+        </div>
+
+        <div class="alert alert-info">
+            <strong>💡 提示：</strong> 要启用完整功能（登录、购物车、发布动态等），请按照 <strong>REDIS_QUICK_FIX_FINAL.md</strong> 文档安装并启动Redis。
+        </div>
+
+        <div class="alert alert-success">
+            <strong>🎨 众创空间优化完成！</strong> 访问 <a href="http://localhost:3001/creative" target="_blank" style="color: #065f46; text-decoration: underline;">http://localhost:3001/creative</a> 查看优化后的视觉效果。
+        </div>
+    </div>
+
+    <script>
+        async function testMallProducts() {
+            const resultDiv = document.getElementById('mall-result');
+            resultDiv.className = 'result show';
+            resultDiv.innerHTML = '<p>正在请求...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:8085/api/mall/products?page=1&size=5');
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <h3 style="color: #10b981; margin-bottom: 10px;">✅ 请求成功</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h3 style="color: #ef4444; margin-bottom: 10px;">❌ 请求失败</h3>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+
+        async function testMallCategories() {
+            const resultDiv = document.getElementById('mall-result');
+            resultDiv.className = 'result show';
+            resultDiv.innerHTML = '<p>正在请求...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:8085/api/mall/products?page=1&size=10');
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <h3 style="color: #10b981; margin-bottom: 10px;">✅ 请求成功</h3>
+                    <p>共找到 ${data.data?.total || 0} 件商品</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h3 style="color: #ef4444; margin-bottom: 10px;">❌ 请求失败</h3>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+
+        async function testSocialPosts() {
+            const resultDiv = document.getElementById('social-result');
+            resultDiv.className = 'result show';
+            resultDiv.innerHTML = '<p>正在请求...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:8083/api/social/posts?page=1&size=5');
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <h3 style="color: #10b981; margin-bottom: 10px;">✅ 请求成功</h3>
+                    <p>共找到 ${data.data?.length || 0} 条动态</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h3 style="color: #ef4444; margin-bottom: 10px;">❌ 请求失败</h3>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+
+        async function testHotTopics() {
+            const resultDiv = document.getElementById('social-result');
+            resultDiv.className = 'result show';
+            resultDiv.innerHTML = '<p>正在请求...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:8083/api/social/topics/hot');
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <h3 style="color: #10b981; margin-bottom: 10px;">✅ 请求成功</h3>
+                    <p>共找到 ${data.data?.length || 0} 个热门话题</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h3 style="color: #ef4444; margin-bottom: 10px;">❌ 请求失败</h3>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

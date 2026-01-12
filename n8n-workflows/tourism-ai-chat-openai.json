@@ -1,0 +1,110 @@
+{
+  "name": "智慧旅游-AI聊天(冀小游)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/ai-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "f1a2b3c4-1111-2222-3333-444455556666",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, name, description, address, ticket_price, opening_hours, category FROM attraction WHERE status = 'open' ORDER BY rating DESC LIMIT 10",
+        "options": {}
+      },
+      "id": "f1a2b3c4-2222-3333-4444-555566667777",
+      "name": "MySQL获取景点",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.3,
+      "position": [450, 300],
+      "credentials": {
+        "mySql": {
+          "id": "YOUR_MYSQL_CREDENTIAL_ID",
+          "name": "MySQL jiyi_tourism"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-3.5-turbo",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "你是冀小游，河北红色旅游智能助手。你热情友好，对河北的红色景点非常了解。\n\n你可以帮助游客：\n1. 介绍红色景点的历史和特色\n2. 推荐旅游路线\n3. 提供周边美食推荐\n4. 解答门票、开放时间等问题\n\n以下是河北主要红色景点信息：\n{{ $json.map(s => `【${s.name}】${s.description} 地址：${s.address} 门票：${s.ticket_price > 0 ? s.ticket_price + '元' : '免费'} 开放时间：${s.opening_hours}`).join('\\n') }}\n\n回答要简洁友好，使用emoji增加亲和力。如果问题与河北红色旅游无关，礼貌地引导用户询问相关问题。"
+            },
+            {
+              "role": "user", 
+              "content": "{{ $('Webhook').first().json.body.question }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 1000
+        }
+      },
+      "id": "f1a2b3c4-3333-4444-5555-666677778888",
+      "name": "OpenAI回答",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.3,
+      "position": [650, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Webhook').first().json.body || {};\nconst aiResponse = $('OpenAI回答').first().json;\nconst question = input.question || '';\n\nlet answer = '';\nlet type = 'general';\n\ntry {\n  answer = aiResponse.message?.content || aiResponse.text || '';\n  \n  // 判断回答类型\n  const ql = question.toLowerCase();\n  if (ql.includes('西柏坡') || ql.includes('狼牙山') || ql.includes('白洋淀') || ql.includes('景点')) {\n    type = 'spot_info';\n  } else if (ql.includes('路线') || ql.includes('推荐') || ql.includes('行程')) {\n    type = 'route';\n  } else if (ql.includes('美食') || ql.includes('吃') || ql.includes('餐')) {\n    type = 'food';\n  } else if (ql.includes('天气') || ql.includes('穿')) {\n    type = 'weather';\n  }\n} catch (e) {\n  answer = '抱歉，我暂时无法回答这个问题。您可以问我关于河北红色景点、旅游路线或周边美食的问题。';\n}\n\nreturn [{\n  json: {\n    answer: answer,\n    type: type,\n    sessionId: input.sessionId || 'default',\n    suggestions: ['西柏坡有什么必看景点？', '推荐一日游路线', '附近有什么美食？'],\n    timestamp: new Date().toISOString(),\n    generatedBy: 'OpenAI'\n  }\n}];"
+      },
+      "id": "f1a2b3c4-4444-5555-6666-777788889999",
+      "name": "格式化结果",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      },
+      "id": "f1a2b3c4-5555-6666-7777-888899990000",
+      "name": "响应",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "MySQL获取景点", "type": "main", "index": 0 }]] },
+    "MySQL获取景点": { "main": [[{ "node": "OpenAI回答", "type": "main", "index": 0 }]] },
+    "OpenAI回答": { "main": [[{ "node": "格式化结果", "type": "main", "index": 0 }]] },
+    "格式化结果": { "main": [[{ "node": "响应", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { 
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "instanceId": "local"
+  }
+}

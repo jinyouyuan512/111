@@ -1,0 +1,67 @@
+{
+  "name": "智慧旅游 - 智能景点搜索",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/spot-search",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "s1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "options": { "temperature": 0.5 }
+      },
+      "id": "s2",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [400, 500]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是河北红色旅游搜索助手。用户搜索：\"{{ $json.query || '红色旅游' }}\"\n\n请分析用户意图，返回JSON：\n{\n  \"intent\": \"搜索意图(spot/route/food/hotel/general)\",\n  \"keywords\": [\"关键词1\", \"关键词2\"],\n  \"filters\": {\n    \"category\": \"分类(红色文化/生态文明/null)\",\n    \"city\": \"城市(石家庄/保定/承德/邯郸/null)\",\n    \"freeOnly\": false,\n    \"tags\": []\n  },\n  \"suggestions\": [\"相关搜索1\", \"相关搜索2\", \"相关搜索3\"]\n}\n\n只返回JSON。"
+      },
+      "id": "s3",
+      "name": "AI理解意图",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Webhook').first().json;\nconst query = (input.query || '').toLowerCase();\nconst filters = input.filters || {};\nconst page = input.page || 1;\nconst pageSize = input.pageSize || 10;\n\n// 解析AI意图\nlet aiIntent = { keywords: [], filters: {}, suggestions: [] };\ntry {\n  const aiText = $input.first().json.text || '';\n  const match = aiText.match(/\\{[\\s\\S]*\\}/);\n  if (match) aiIntent = JSON.parse(match[0]);\n} catch (e) {}\n\n// 合并AI分析的筛选条件\nconst mergedFilters = { ...aiIntent.filters, ...filters };\n\n// 景点数据库\nconst spots = [\n  { id: 1, name: '西柏坡纪念馆', category: '红色文化', tags: ['革命圣地', '爱国教育', '免费', '需预约'], city: '石家庄', rating: 4.9, reviewCount: 12580, ticketPrice: 0, openTime: '09:00-17:00', description: '新中国从这里走来，解放战争时期中央工委所在地', highlights: ['七届二中全会会址', '毛泽东旧居'], duration: '2-3小时' },\n  { id: 2, name: '狼牙山五壮士纪念地', category: '红色文化', tags: ['抗战遗址', '登山', '英雄故事'], city: '保定', rating: 4.8, reviewCount: 8920, ticketPrice: 80, openTime: '08:00-17:00', description: '狼牙山五壮士英雄事迹发生地', highlights: ['五壮士纪念塔', '棋盘陀'], duration: '3-4小时' },\n  { id: 3, name: '白洋淀雁翎队纪念馆', category: '红色文化', tags: ['水乡风情', '抗日传奇', '荷花', '亲子'], city: '保定', rating: 4.7, reviewCount: 15680, ticketPrice: 40, openTime: '08:00-18:00', description: '华北明珠，雁翎队水上游击战传奇', highlights: ['雁翎队纪念馆', '荷花大观园'], duration: '半天-1天' },\n  { id: 4, name: '塞罕坝展览馆', category: '生态文明', tags: ['人工林海', '避暑', '摄影', '自驾'], city: '承德', rating: 4.9, reviewCount: 6780, ticketPrice: 130, openTime: '全天', description: '世界最大人工林场，三代人的绿色奇迹', highlights: ['塞罕坝展览馆', '望海楼'], duration: '1-2天' },\n  { id: 5, name: '八路军一二九师司令部旧址', category: '红色文化', tags: ['抗战遗址', '免费', '太行精神'], city: '邯郸', rating: 4.6, reviewCount: 4520, ticketPrice: 0, openTime: '09:00-17:00', description: '刘邓大军指挥部，太行山抗战中心', highlights: ['司令部旧址', '将军岭'], duration: '2-3小时' },\n  { id: 6, name: '冉庄地道战遗址', category: '红色文化', tags: ['抗战遗址', '地道战', '亲子', '研学'], city: '保定', rating: 4.5, reviewCount: 7890, ticketPrice: 30, openTime: '08:30-17:30', description: '地道战的发源地，抗日战争的奇迹', highlights: ['地道遗址', '抗战陈列馆'], duration: '2小时' },\n  { id: 7, name: '董存瑞烈士陵园', category: '红色文化', tags: ['革命烈士', '爱国教育', '免费'], city: '承德', rating: 4.7, reviewCount: 3450, ticketPrice: 0, openTime: '08:00-17:00', description: '舍身炸碉堡的英雄董存瑞纪念地', highlights: ['董存瑞纪念馆', '烈士墓'], duration: '1-2小时' },\n  { id: 8, name: '李大钊纪念馆', category: '红色文化', tags: ['革命先驱', '爱国教育', '免费'], city: '唐山', rating: 4.8, reviewCount: 5230, ticketPrice: 0, openTime: '09:00-17:00', description: '中国共产主义运动先驱李大钊纪念地', highlights: ['李大钊故居', '生平事迹展'], duration: '1-2小时' },\n  { id: 9, name: '晋察冀边区革命纪念馆', category: '红色文化', tags: ['革命历史', '免费', '边区政府'], city: '保定', rating: 4.5, reviewCount: 2890, ticketPrice: 0, openTime: '09:00-17:00', description: '晋察冀边区政府旧址', highlights: ['聂荣臻旧居', '边区政府旧址'], duration: '1-2小时' }\n];\n\n// 搜索逻辑\nlet results = spots;\n\n// 关键词搜索（包含AI提取的关键词）\nconst searchKeywords = [query, ...(aiIntent.keywords || [])].filter(Boolean);\nif (searchKeywords.length > 0) {\n  results = results.filter(spot => {\n    const searchText = `${spot.name} ${spot.description} ${spot.tags.join(' ')} ${spot.category} ${spot.city}`.toLowerCase();\n    return searchKeywords.some(kw => searchText.includes(kw.toLowerCase()));\n  });\n}\n\n// 分类筛选\nif (mergedFilters.category) {\n  results = results.filter(spot => spot.category === mergedFilters.category);\n}\n\n// 城市筛选\nif (mergedFilters.city) {\n  results = results.filter(spot => spot.city === mergedFilters.city);\n}\n\n// 免费筛选\nif (mergedFilters.freeOnly) {\n  results = results.filter(spot => spot.ticketPrice === 0);\n}\n\n// 标签筛选\nif (mergedFilters.tags && mergedFilters.tags.length > 0) {\n  results = results.filter(spot => mergedFilters.tags.some(tag => spot.tags.includes(tag)));\n}\n\n// 排序\nconst sortBy = filters.sortBy || 'rating';\nif (sortBy === 'rating') results.sort((a, b) => b.rating - a.rating);\nelse if (sortBy === 'reviewCount') results.sort((a, b) => b.reviewCount - a.reviewCount);\nelse if (sortBy === 'price') results.sort((a, b) => a.ticketPrice - b.ticketPrice);\n\n// 分页\nconst total = results.length;\nconst startIndex = (page - 1) * pageSize;\nconst paginatedResults = results.slice(startIndex, startIndex + pageSize);\n\n// 搜索建议\nconst suggestions = aiIntent.suggestions?.length > 0 ? aiIntent.suggestions : ['西柏坡一日游', '保定红色景点', '免费红色景点'];\n\nreturn {\n  success: true,\n  query,\n  intent: aiIntent.intent || 'general',\n  analyzedKeywords: aiIntent.keywords || [],\n  filters: mergedFilters,\n  results: paginatedResults,\n  pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },\n  suggestions,\n  hotSearches: ['红色旅游', '免费景点', '亲子游', '革命圣地', '抗战遗址'],\n  categories: ['红色文化', '生态文明'],\n  cities: ['石家庄', '保定', '承德', '邯郸', '唐山'],\n  generatedAt: new Date().toISOString()\n};"
+      },
+      "id": "s4",
+      "name": "搜索景点",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "s5",
+      "name": "返回结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "AI理解意图", "type": "main", "index": 0 }]] },
+    "OpenAI Chat Model": { "ai_languageModel": [[{ "node": "AI理解意图", "type": "ai_languageModel", "index": 0 }]] },
+    "AI理解意图": { "main": [[{ "node": "搜索景点", "type": "main", "index": 0 }]] },
+    "搜索景点": { "main": [[{ "node": "返回结果", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

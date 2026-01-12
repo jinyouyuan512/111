@@ -1,0 +1,46 @@
+{
+  "name": "智慧旅游 - 运营仪表盘(简化版)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/dashboard",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook-dashboard",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 生成仪表盘模拟数据\nconst todayVisitors = Math.floor(Math.random() * 5000) + 8000;\nconst activeUsers = Math.floor(todayVisitors * 0.15);\nconst totalBookings = Math.floor(Math.random() * 500) + 200;\n\nconst dashboard = {\n  todayVisitors,\n  activeUsers,\n  totalBookings,\n  popularSpots: [\n    { name: '西柏坡纪念馆', visits: 3560 },\n    { name: '白洋淀雁翎队纪念馆', visits: 2890 },\n    { name: '狼牙山五壮士纪念地', visits: 2340 },\n    { name: '塞罕坝展览馆', visits: 1890 }\n  ],\n  recentAlerts: [\n    { type: 'weather', message: '塞罕坝地区明日有降雪', time: '10分钟前' },\n    { type: 'crowd', message: '西柏坡当前人流较大', time: '30分钟前' }\n  ],\n  systemHealth: {\n    weatherApi: 'ok',\n    trafficApi: 'ok',\n    aiService: 'ok',\n    database: 'ok'\n  }\n};\n\nreturn dashboard;"
+      },
+      "id": "generate-data",
+      "name": "生成数据",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond",
+      "name": "返回响应",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [750, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "生成数据", "type": "main", "index": 0 }]]
+    },
+    "生成数据": {
+      "main": [[{ "node": "返回响应", "type": "main", "index": 0 }]]
+    }
+  }
+}

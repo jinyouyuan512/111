@@ -1,0 +1,67 @@
+{
+  "name": "智慧旅游 - 行程提醒服务",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/trip-reminder",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "t1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "options": { "temperature": 0.7 }
+      },
+      "id": "t2",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [400, 500]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是贴心的旅行助手。\n\n行程信息：\n- 目的地：{{ $json.spotName || '西柏坡纪念馆' }}\n- 出发日期：{{ $json.startDate || '明天' }}\n- 提醒类型：{{ $json.reminderType || 'departure' }}\n\n请生成温馨的提醒内容，返回JSON：\n{\n  \"title\": \"提醒标题(带emoji)\",\n  \"greeting\": \"问候语\",\n  \"mainContent\": \"主要提醒内容\",\n  \"checklist\": [\"必带物品1\", \"必带物品2\", \"必带物品3\"],\n  \"tips\": [\"贴心提示1\", \"贴心提示2\"],\n  \"closing\": \"结束语\"\n}\n\n只返回JSON。"
+      },
+      "id": "t3",
+      "name": "AI生成提醒",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Webhook').first().json;\nconst spotName = input.spotName || '西柏坡纪念馆';\nconst startDate = input.startDate || new Date(Date.now() + 86400000).toISOString().split('T')[0];\nconst reminderType = input.reminderType || 'departure';\n\n// 景点信息\nconst spotInfo = {\n  '西柏坡纪念馆': { openTime: '09:00-17:00', price: '免费', tips: '需提前预约，周一闭馆' },\n  '狼牙山五壮士纪念地': { openTime: '08:00-17:00', price: '80元', tips: '山路较陡，穿运动鞋' },\n  '白洋淀雁翎队纪念馆': { openTime: '08:00-18:00', price: '40元', tips: '夏季荷花最美' },\n  '冉庄地道战遗址': { openTime: '08:30-17:30', price: '30元', tips: '地道内较窄' },\n  '董存瑞烈士陵园': { openTime: '08:00-17:00', price: '免费', tips: '免费参观' },\n  '李大钊纪念馆': { openTime: '09:00-17:00', price: '免费', tips: '周一闭馆' }\n};\n\nconst spot = spotInfo[spotName] || spotInfo['西柏坡纪念馆'];\n\n// 解析AI生成的内容\nlet aiContent = {\n  title: '🚗 出发提醒',\n  greeting: '您好！',\n  mainContent: `您的${spotName}之旅即将开始`,\n  checklist: ['身份证', '手机充电宝', '舒适鞋子', '防晒用品', '雨具'],\n  tips: ['建议早出发避开高峰', '提前查看天气预报'],\n  closing: '祝旅途愉快！'\n};\n\ntry {\n  const aiText = $input.first().json.text || '';\n  const match = aiText.match(/\\{[\\s\\S]*\\}/);\n  if (match) aiContent = JSON.parse(match[0]);\n} catch (e) {}\n\n// 构建完整提醒\nconst reminder = {\n  id: 'reminder-' + Date.now(),\n  type: reminderType,\n  title: aiContent.title,\n  greeting: aiContent.greeting,\n  content: {\n    main: aiContent.mainContent,\n    details: [\n      `📅 出发日期：${startDate}`,\n      `📍 目的地：${spotName}`,\n      `⏰ 开放时间：${spot.openTime}`,\n      `🎫 门票：${spot.price}`,\n      `💡 特别提示：${spot.tips}`\n    ]\n  },\n  checklist: aiContent.checklist.map((item, i) => ({ id: i + 1, item, checked: false })),\n  tips: aiContent.tips,\n  closing: aiContent.closing,\n  spotInfo: spot,\n  createdAt: new Date().toISOString()\n};\n\nreturn {\n  success: true,\n  reminder\n};"
+      },
+      "id": "t4",
+      "name": "组装提醒",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "t5",
+      "name": "返回结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "AI生成提醒", "type": "main", "index": 0 }]] },
+    "OpenAI Chat Model": { "ai_languageModel": [[{ "node": "AI生成提醒", "type": "ai_languageModel", "index": 0 }]] },
+    "AI生成提醒": { "main": [[{ "node": "组装提醒", "type": "main", "index": 0 }]] },
+    "组装提醒": { "main": [[{ "node": "返回结果", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

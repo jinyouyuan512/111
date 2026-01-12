@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>直接测试图片显示</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { color: #a0182f; }
+        .image-test { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .image-test h3 { margin-top: 0; }
+        .image-test img { max-width: 400px; max-height: 300px; border: 2px solid #ddd; border-radius: 4px; }
+        .success { color: green; }
+        .error { color: red; }
+        .url { font-size: 12px; color: #666; word-break: break-all; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖼️ 直接测试图片显示</h1>
+        <p>这个页面直接从 Social Service (8083) 加载图片，测试图片是否可以正常显示。</p>
+        
+        <div id="images-container">
+            <p>正在加载作品数据...</p>
+        </div>
+    </div>
+
+    <script>
+        async function loadImages() {
+            const container = document.getElementById('images-container');
+            
+            try {
+                // 获取作品列表
+                const response = await fetch('http://localhost:8087/api/creative/designs/top?limit=5');
+                const data = await response.json();
+                
+                if (data.code !== 200 || !data.data) {
+                    container.innerHTML = '<p class="error">获取作品数据失败</p>';
+                    return;
+                }
+                
+                let html = '';
+                
+                for (const work of data.data) {
+                    const coverUrl = work.coverImage;
+                    const filesUrls = work.files || [];
+                    
+                    html += `
+                        <div class="image-test">
+                            <h3>${work.title} (ID: ${work.id})</h3>
+                            <p><strong>封面URL:</strong></p>
+                            <p class="url">${coverUrl || '无'}</p>
+                            ${coverUrl ? `
+                                <p>封面图片:</p>
+                                <img src="${coverUrl}" alt="封面" onload="this.nextElementSibling.innerHTML='<span class=success>✅ 加载成功</span>'" onerror="this.nextElementSibling.innerHTML='<span class=error>❌ 加载失败</span>'">
+                                <p></p>
+                            ` : '<p class="error">无封面URL</p>'}
+                            
+                            <p><strong>文件URLs (${filesUrls.length}个):</strong></p>
+                            ${filesUrls.map((url, i) => `
+                                <p class="url">${i+1}. ${url}</p>
+                                <img src="${url}" alt="文件${i+1}" onload="this.nextElementSibling.innerHTML='<span class=success>✅ 加载成功</span>'" onerror="this.nextElementSibling.innerHTML='<span class=error>❌ 加载失败</span>'">
+                                <p></p>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+                
+                container.innerHTML = html;
+                
+            } catch (error) {
+                container.innerHTML = `<p class="error">错误: ${error.message}</p>`;
+            }
+        }
+        
+        loadImages();
+    </script>
+</body>
+</html>

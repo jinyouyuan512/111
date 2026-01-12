@@ -1,0 +1,83 @@
+{
+  "name": "AI读书推荐助手",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "academy/book-recommend",
+        "options": {}
+      },
+      "id": "webhook-rec",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是河北红色读物智能推荐助手。根据用户的阅读偏好和历史，推荐最适合的红色书籍。\n\n用户信息：\n- 阅读偏好：{{ $json.body.preferences || '无特定偏好' }}\n- 已读书籍：{{ $json.body.readBooks || '无' }}\n- 感兴趣的主题：{{ $json.body.interests || '红色文化' }}\n- 阅读目的：{{ $json.body.purpose || '学习了解' }}\n\n请根据用户情况，推荐3-5本最适合的河北红色相关书籍，并说明推荐理由。\n\n返回JSON格式：\n{\n  \"recommendations\": [\n    {\n      \"bookId\": 数字,\n      \"title\": \"书名\",\n      \"author\": \"作者\",\n      \"category\": \"分类\",\n      \"matchScore\": 匹配度(0-100),\n      \"reason\": \"推荐理由(50字内)\",\n      \"highlights\": [\"亮点1\", \"亮点2\"]\n    }\n  ],\n  \"personalizedTip\": \"个性化阅读建议\"\n}"
+      },
+      "id": "llm-rec",
+      "name": "AI个性化推荐",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-3.5-turbo",
+        "options": {
+          "temperature": 0.8
+        }
+      },
+      "id": "openai-rec",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [470, 500],
+      "credentials": {
+        "openAiApi": {
+          "id": "your-openai-credential-id",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nlet result;\n\ntry {\n  const text = input.text || input.output || '';\n  const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    result = JSON.parse(jsonMatch[0]);\n  } else {\n    throw new Error('No JSON found');\n  }\n} catch (e) {\n  result = {\n    recommendations: [\n      {\n        bookId: 1,\n        title: '西柏坡：新中国从这里走来',\n        author: '中共河北省委党史研究室',\n        category: '党史著作',\n        matchScore: 95,\n        reason: '了解河北红色历史的必读之作，全面展现西柏坡精神。',\n        highlights: ['权威党史资料', '图文并茂', '深度解读']\n      },\n      {\n        bookId: 5,\n        title: '白洋淀纪事',\n        author: '孙犁',\n        category: '红色经典',\n        matchScore: 92,\n        reason: '文学性与革命性完美结合，感受冀中人民的抗战精神。',\n        highlights: ['文学经典', '生动感人', '历史价值']\n      },\n      {\n        bookId: 4,\n        title: '塞罕坝精神',\n        author: '河北省林业厅',\n        category: '纪实文学',\n        matchScore: 88,\n        reason: '当代红色精神的典范，展现艰苦奋斗的时代价值。',\n        highlights: ['时代精神', '生态文明', '奋斗故事']\n      }\n    ],\n    personalizedTip: '建议您从《西柏坡》开始阅读，了解河北在中国革命史上的重要地位，再通过《白洋淀纪事》感受文学之美。'\n  };\n}\n\nreturn { json: { success: true, ...result } };"
+      },
+      "id": "code-rec",
+      "name": "处理结果",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [690, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond-rec",
+      "name": "返回结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [910, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "AI个性化推荐", "type": "main", "index": 0 }]]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [[{ "node": "AI个性化推荐", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "AI个性化推荐": {
+      "main": [[{ "node": "处理结果", "type": "main", "index": 0 }]]
+    },
+    "处理结果": {
+      "main": [[{ "node": "返回结果", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

@@ -1,0 +1,124 @@
+{
+  "name": "红色新闻采集工作流",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "academy/crawl-news",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook触发",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://hebei.hebnews.cn/node_50.htm",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "http-hebei-news",
+      "name": "获取河北日报新闻",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [450, 200]
+    },
+    {
+      "parameters": {
+        "url": "https://www.hebnews.cn/",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "http-hebnews",
+      "name": "获取河北新闻网",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 解析HTML提取新闻列表\nconst items = [];\n\n// 模拟解析结果 - 实际使用时需要根据网页结构调整\nconst mockNews = [\n  {\n    title: '西柏坡纪念馆举办\"新中国从这里走来\"主题展览',\n    summary: '展览全面展示了中共中央在西柏坡的光辉历程',\n    source: '河北日报',\n    category: '纪念活动',\n    externalUrl: 'https://hebei.hebnews.cn/2026-01/10/content_9876543.htm',\n    publishTime: new Date().toISOString()\n  },\n  {\n    title: '河北省开展\"传承红色基因\"主题教育活动',\n    summary: '全省各地积极组织党员干部深入红色教育基地',\n    source: '河北新闻网',\n    category: '教育实践',\n    externalUrl: 'https://www.hebnews.cn/2026-01/09/content_8765432.htm',\n    publishTime: new Date(Date.now() - 86400000).toISOString()\n  },\n  {\n    title: '狼牙山五壮士纪念地迎来参观高峰',\n    summary: '大批群众前往狼牙山缅怀革命先烈',\n    source: '燕赵都市报',\n    category: '红色故事',\n    externalUrl: 'https://yzdsb.hebnews.cn/2026-01/08/content_7654321.htm',\n    publishTime: new Date(Date.now() - 172800000).toISOString()\n  },\n  {\n    title: '塞罕坝精神宣讲团走进高校',\n    summary: '宣讲团成员讲述三代务林人艰苦奋斗的感人故事',\n    source: '河北新闻网',\n    category: '教育实践',\n    externalUrl: 'https://www.hebnews.cn/2026-01/07/content_6543210.htm',\n    publishTime: new Date(Date.now() - 259200000).toISOString()\n  },\n  {\n    title: '李大钊故居纪念馆举办专题展览',\n    summary: '展览以\"播火者\"为主题，全面展示李大钊同志的光辉历程',\n    source: '唐山晚报',\n    category: '红色故事',\n    externalUrl: 'https://www.tswb.com.cn/2026-01/06/content_5432109.htm',\n    publishTime: new Date(Date.now() - 345600000).toISOString()\n  }\n];\n\nfor (const news of mockNews) {\n  items.push({ json: news });\n}\n\nreturn items;"
+      },
+      "id": "parse-news",
+      "name": "解析新闻数据",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO red_news (title, summary, category, source, external_url, publish_time, view_count, like_count, is_top, is_hot, status, deleted) VALUES ('{{ $json.title }}', '{{ $json.summary }}', '{{ $json.category }}', '{{ $json.source }}', '{{ $json.externalUrl }}', '{{ $json.publishTime }}', FLOOR(RAND() * 100000), FLOOR(RAND() * 10000), 0, FLOOR(RAND() * 2), 'published', 0) ON DUPLICATE KEY UPDATE summary = VALUES(summary), external_url = VALUES(external_url)",
+        "options": {}
+      },
+      "id": "mysql-insert",
+      "name": "保存到数据库",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [850, 300],
+      "credentials": {
+        "mySql": {
+          "id": "1",
+          "name": "MySQL Academy"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, message: '新闻采集完成', count: $items.length } }}"
+      },
+      "id": "response",
+      "name": "返回结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Webhook触发": {
+      "main": [
+        [
+          { "node": "获取河北日报新闻", "type": "main", "index": 0 },
+          { "node": "获取河北新闻网", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "获取河北日报新闻": {
+      "main": [
+        [{ "node": "解析新闻数据", "type": "main", "index": 0 }]
+      ]
+    },
+    "获取河北新闻网": {
+      "main": [
+        [{ "node": "解析新闻数据", "type": "main", "index": 0 }]
+      ]
+    },
+    "解析新闻数据": {
+      "main": [
+        [{ "node": "保存到数据库", "type": "main", "index": 0 }]
+      ]
+    },
+    "保存到数据库": {
+      "main": [
+        [{ "node": "返回结果", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

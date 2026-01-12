@@ -1,0 +1,46 @@
+{
+  "name": "测试工作流",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "test",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-test",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"success\": true,\n  \"message\": \"Hello from n8n!\",\n  \"timestamp\": \"{{ $now.toISO() }}\",\n  \"receivedData\": {{ JSON.stringify($json) }}\n}",
+        "options": {}
+      },
+      "id": "set-response",
+      "name": "Set Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [500, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Set Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "name": "智慧旅游 - AI语音导览",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/audio-guide",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.deepseek.com/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"deepseek-chat\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"你是河北红色旅游景点专业讲解员。根据景点名称生成语音导览内容，必须返回JSON格式：{\\\"intro\\\":\\\"开场白\\\",\\\"chapters\\\":[{\\\"title\\\":\\\"章节标题\\\",\\\"content\\\":\\\"详细内容200字以上\\\",\\\"duration\\\":120}]}。要求：1.开场白50-100字 2.分3-4个章节 3.内容有历史深度、语言生动 4.每章节duration为预计朗读秒数\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"请为【{{ $json.spotName }}】生成{{ $json.style === 'kids' ? '儿童版' : $json.style === 'story' ? '故事版' : '标准版' }}语音导览\"\n    }\n  ],\n  \"temperature\": 0.7,\n  \"max_tokens\": 2000\n}",
+        "options": {}
+      },
+      "id": "deepseek",
+      "name": "调用DeepSeek",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "1",
+          "name": "DeepSeek API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 解析DeepSeek响应并格式化输出\nconst webhookData = $('Webhook').first().json;\nconst spotName = webhookData.spotName || '未知景点';\nconst style = webhookData.style || 'standard';\nconst language = webhookData.language || 'zh';\n\ntry {\n  const response = $input.first().json;\n  const content = response.choices?.[0]?.message?.content || '';\n  \n  // 提取JSON内容\n  const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\n  if (!jsonMatch) throw new Error('未找到JSON');\n  \n  const guide = JSON.parse(jsonMatch[0]);\n  const chapters = (guide.chapters || []).map((ch, idx) => ({\n    id: idx + 1,\n    title: ch.title,\n    content: ch.content,\n    duration: ch.duration || 120,\n    audioUrl: `/audio/${encodeURIComponent(spotName)}/${idx + 1}.mp3`\n  }));\n  \n  return {\n    success: true,\n    spotName,\n    style,\n    language,\n    guide: {\n      intro: guide.intro,\n      chapters,\n      totalDuration: chapters.reduce((sum, ch) => sum + ch.duration, 0),\n      totalChapters: chapters.length\n    },\n    source: 'deepseek',\n    generatedAt: new Date().toISOString()\n  };\n} catch (error) {\n  // 降级方案：返回基础内容\n  return {\n    success: true,\n    spotName,\n    style,\n    language,\n    guide: {\n      intro: `欢迎来到${spotName}，这里是河北省著名的红色旅游景点。`,\n      chapters: [\n        { id: 1, title: '景点概述', content: `${spotName}是河北省重要的红色文化遗址，承载着丰富的革命历史，是爱国主义教育的重要基地。`, duration: 90 },\n        { id: 2, title: '历史背景', content: '这里见证了中国革命的重要历程，无数革命先烈在此浴血奋战，为新中国的建立做出了巨大贡献。', duration: 120 },\n        { id: 3, title: '参观指南', content: '建议您跟随讲解员参观，深入了解这段历史。整个参观约需1-2小时，请注意保持安静。', duration: 90 }\n      ],\n      totalDuration: 300,\n      totalChapters: 3\n    },\n    source: 'fallback',\n    error: error.message,\n    generatedAt: new Date().toISOString()\n  };\n}"
+      },
+      "id": "code",
+      "name": "解析响应",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond",
+      "name": "返回结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1000, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "调用DeepSeek", "type": "main", "index": 0 }]]
+    },
+    "调用DeepSeek": {
+      "main": [[{ "node": "解析响应", "type": "main", "index": 0 }]]
+    },
+    "解析响应": {
+      "main": [[{ "node": "返回结果", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>视频显示测试</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            max-height: 400px;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .post-item {
+            border: 1px solid #eee;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        .post-video {
+            margin: 10px 0;
+        }
+        video {
+            max-width: 100%;
+            border-radius: 8px;
+        }
+        .video-info {
+            background: #f0f0f0;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>视频显示测试</h1>
+    
+    <div class="section">
+        <h2>1. 获取帖子列表（包含视频）</h2>
+        <button onclick="loadPosts()">加载帖子</button>
+        <div id="postsResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>2. 检查media_file表</h2>
+        <button onclick="checkMediaFiles()">检查媒体文件</button>
+        <div id="mediaResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>3. 显示视频帖子</h2>
+        <div id="videoPostsDisplay"></div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+            alert('请先登录！');
+        }
+
+        async function loadPosts() {
+            const resultDiv = document.getElementById('postsResult');
+            const displayDiv = document.getElementById('videoPostsDisplay');
+            
+            try {
+                resultDiv.innerHTML = '<p>正在加载帖子...</p>';
+                
+                const response = await fetch('http://localhost:8083/api/posts?page=1&size=20', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                console.log('帖子数据:', data);
+                
+                if (data.code === 200 && data.data) {
+                    const posts = data.data.records || data.data;
+                    
+                    // 统计
+                    const totalPosts = posts.length;
+                    const postsWithVideo = posts.filter(p => p.video).length;
+                    const postsWithImages = posts.filter(p => p.images && p.images.length > 0).length;
+                    
+                    resultDiv.innerHTML = `
+                        <p class="success">✓ 成功加载 ${totalPosts} 条帖子</p>
+                        <p>包含视频的帖子: ${postsWithVideo}</p>
+                        <p>包含图片的帖子: ${postsWithImages}</p>
+                        <pre>${JSON.stringify(data.data, null, 2)}</pre>
+                    `;
+                    
+                    // 显示有视频的帖子
+                    const videoPosts = posts.filter(p => p.video);
+                    if (videoPosts.length > 0) {
+                        displayDiv.innerHTML = '<h3>包含视频的帖子：</h3>';
+                        videoPosts.forEach(post => {
+                            displayDiv.innerHTML += `
+                                <div class="post-item">
+                                    <h4>帖子 #${post.id}</h4>
+                                    <p><strong>内容:</strong> ${post.content}</p>
+                                    <p><strong>作者:</strong> ${post.userName}</p>
+                                    <div class="video-info">
+                                        <p><strong>视频URL:</strong> ${post.video.url}</p>
+                                        <p><strong>缩略图:</strong> ${post.video.thumbnail}</p>
+                                        <p><strong>时长:</strong> ${post.video.duration}秒</p>
+                                    </div>
+                                    <div class="post-video">
+                                        <video 
+                                            src="${post.video.url}" 
+                                            poster="${post.video.thumbnail}"
+                                            controls
+                                            style="max-width: 600px;"
+                                        ></video>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        displayDiv.innerHTML = '<p class="error">没有找到包含视频的帖子</p>';
+                    }
+                } else {
+                    resultDiv.innerHTML = `<p class="error">✗ 加载失败: ${data.message}</p>`;
+                }
+            } catch (error) {
+                console.error('加载错误:', error);
+                resultDiv.innerHTML = `<p class="error">✗ 加载错误: ${error.message}</p>`;
+            }
+        }
+
+        async function checkMediaFiles() {
+            const resultDiv = document.getElementById('mediaResult');
+            
+            try {
+                resultDiv.innerHTML = '<p>正在检查媒体文件...</p>';
+                
+                // 这里需要一个API来查询media_file表
+                // 暂时通过帖子数据来推断
+                const response = await fetch('http://localhost:8083/api/posts?page=1&size=50', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.code === 200 && data.data) {
+                    const posts = data.data.records || data.data;
+                    
+                    let totalImages = 0;
+                    let totalVideos = 0;
+                    
+                    posts.forEach(post => {
+                        if (post.images) totalImages += post.images.length;
+                        if (post.video) totalVideos++;
+                    });
+                    
+                    resultDiv.innerHTML = `
+                        <p class="success">✓ 媒体文件统计</p>
+                        <p>图片总数: ${totalImages}</p>
+                        <p>视频总数: ${totalVideos}</p>
+                        <p>提示: 如果视频总数为0，说明没有帖子包含视频数据</p>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<p class="error">✗ 检查失败</p>`;
+                }
+            } catch (error) {
+                console.error('检查错误:', error);
+                resultDiv.innerHTML = `<p class="error">✗ 检查错误: ${error.message}</p>`;
+            }
+        }
+
+        // 页面加载时自动检查
+        window.onload = function() {
+            if (token) {
+                loadPosts();
+            }
+        };
+    </script>
+</body>
+</html>

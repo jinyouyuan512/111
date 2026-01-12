@@ -1,0 +1,84 @@
+{
+  "name": "传承学院-RSS新闻抓取",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "days", "daysInterval": 1 }]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "每天定时触发",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://news.baidu.com/news?tn=rss&rss_source=%E6%B2%B3%E5%8C%97%E7%BA%A2%E8%89%B2"
+      },
+      "id": "rss-baidu",
+      "name": "百度新闻RSS",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [500, 200]
+    },
+    {
+      "parameters": {
+        "url": "https://www.gov.cn/rss/govall.xml"
+      },
+      "id": "rss-gov",
+      "name": "政府网RSS",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [500, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 处理RSS数据，转换为数据库格式\nconst now = new Date();\nconst dateStr = now.toISOString().slice(0, 19).replace('T', ' ');\n\nconst items = $input.all();\nconst newsItems = [];\n\nfor (const item of items) {\n  const data = item.json;\n  // 过滤包含河北或红色相关关键词的新闻\n  const title = data.title || '';\n  const content = data.content || data.description || '';\n  \n  if (title.includes('河北') || title.includes('红色') || \n      title.includes('西柏坡') || title.includes('革命') ||\n      content.includes('河北') || content.includes('红色')) {\n    newsItems.push({\n      title: title.substring(0, 255),\n      summary: (content || '').substring(0, 500),\n      content: content,\n      category: '时政要闻',\n      source: data.creator || 'RSS订阅',\n      author: '记者',\n      external_url: data.link || '',\n      is_top: 0,\n      is_hot: 0,\n      publish_time: data.pubDate ? new Date(data.pubDate).toISOString().slice(0, 19).replace('T', ' ') : dateStr,\n      created_at: dateStr\n    });\n  }\n}\n\n// 如果没有匹配的新闻，返回空数组\nif (newsItems.length === 0) {\n  return [];\n}\n\nreturn newsItems.map(item => ({ json: item }));"
+      },
+      "id": "process-rss",
+      "name": "处理RSS数据",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "red_news",
+        "columns": "title, summary, content, category, source, author, external_url, is_top, is_hot, publish_time, created_at",
+        "options": {}
+      },
+      "id": "insert-news",
+      "name": "写入MySQL",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [1000, 300],
+      "credentials": {
+        "mySql": {
+          "id": "1",
+          "name": "MySQL jiyi_academy"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "每天定时触发": {
+      "main": [[
+        { "node": "百度新闻RSS", "type": "main", "index": 0 },
+        { "node": "政府网RSS", "type": "main", "index": 0 }
+      ]]
+    },
+    "百度新闻RSS": {
+      "main": [[{ "node": "处理RSS数据", "type": "main", "index": 0 }]]
+    },
+    "政府网RSS": {
+      "main": [[{ "node": "处理RSS数据", "type": "main", "index": 0 }]]
+    },
+    "处理RSS数据": {
+      "main": [[{ "node": "写入MySQL", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

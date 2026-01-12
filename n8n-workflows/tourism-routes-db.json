@@ -1,0 +1,58 @@
+{
+  "name": "智慧旅游-路线数据",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/routes",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a1b2c3d4-1111-2222-3333-444455556666",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 模拟从数据库获取的热门路线数据\nconst hotRoutes = [\n  {\n    id: '1',\n    rank: 1,\n    name: '西柏坡红色经典一日游',\n    description: '探访新中国从这里走来的革命圣地',\n    spots: ['西柏坡纪念馆'],\n    spotCount: 1,\n    duration: '1天',\n    days: 1,\n    views: 12580,\n    bookings: 3560,\n    rating: 4.9,\n    difficulty: '简单',\n    season: '全年',\n    estimatedCost: 200,\n    tags: ['红色文化', '革命圣地'],\n    coverImage: ''\n  },\n  {\n    id: '2',\n    rank: 2,\n    name: '白洋淀+冉庄抗战寻迹',\n    description: '重温抗战岁月，感受英雄精神',\n    spots: ['白洋淀雁翎队纪念馆', '冉庄地道战遗址'],\n    spotCount: 2,\n    duration: '1天',\n    days: 1,\n    views: 9870,\n    bookings: 2890,\n    rating: 4.8,\n    difficulty: '简单',\n    season: '春夏秋',\n    estimatedCost: 300,\n    tags: ['抗战遗址', '水上游击'],\n    coverImage: ''\n  },\n  {\n    id: '3',\n    rank: 3,\n    name: '太行山红色生态游',\n    description: '英雄山脉与绿色奇迹的完美结合',\n    spots: ['狼牙山五壮士纪念地', '塞罕坝展览馆'],\n    spotCount: 2,\n    duration: '2天',\n    days: 2,\n    views: 8560,\n    bookings: 2340,\n    rating: 4.8,\n    difficulty: '中等',\n    season: '夏秋',\n    estimatedCost: 600,\n    tags: ['红色文化', '生态文明'],\n    coverImage: ''\n  },\n  {\n    id: '4',\n    rank: 4,\n    name: '河北红色全景游',\n    description: '全面领略河北红色文化精华',\n    spots: ['西柏坡纪念馆', '狼牙山五壮士纪念地', '白洋淀雁翎队纪念馆', '李大钊纪念馆'],\n    spotCount: 4,\n    duration: '3天',\n    days: 3,\n    views: 6780,\n    bookings: 1560,\n    rating: 4.9,\n    difficulty: '中等',\n    season: '全年',\n    estimatedCost: 1200,\n    tags: ['红色文化', '深度游'],\n    coverImage: ''\n  }\n];\n\nreturn [{ json: { success: true, routes: hotRoutes } }];"
+      },
+      "id": "a1b2c3d4-2222-3333-4444-555566667777",
+      "name": "生成路线数据",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      },
+      "id": "a1b2c3d4-3333-4444-5555-666677778888",
+      "name": "响应",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [650, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "生成路线数据", "type": "main", "index": 0 }]] },
+    "生成路线数据": { "main": [[{ "node": "响应", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { 
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "instanceId": "local"
+  }
+}

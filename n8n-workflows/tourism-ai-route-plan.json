@@ -1,0 +1,58 @@
+{
+  "name": "智慧旅游-AI行程规划",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/ai-plan",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "c1d2e3f4-1111-2222-3333-444455556666",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json.body || {};\nconst spots = input.spots || [];\nconst duration = input.duration || 1;\nconst startDate = input.startDate || new Date().toISOString().split('T')[0];\n\n// 景点信息\nconst spotInfo = {\n  '西柏坡纪念馆': { ticketPrice: 0, visitDuration: 180, tips: '免费参观需预约，周一闭馆' },\n  '西柏坡': { ticketPrice: 0, visitDuration: 180, tips: '免费参观需预约，周一闭馆' },\n  '狼牙山五壮士纪念地': { ticketPrice: 65, visitDuration: 240, tips: '山路较陡，注意安全' },\n  '狼牙山': { ticketPrice: 65, visitDuration: 240, tips: '山路较陡，注意安全' },\n  '白洋淀雁翎队纪念馆': { ticketPrice: 40, visitDuration: 180, tips: '夏季荷花最美' },\n  '白洋淀': { ticketPrice: 40, visitDuration: 180, tips: '夏季荷花最美' },\n  '塞罕坝展览馆': { ticketPrice: 130, visitDuration: 300, tips: '秋季色彩最美' },\n  '塞罕坝': { ticketPrice: 130, visitDuration: 300, tips: '秋季色彩最美' },\n  '李大钊纪念馆': { ticketPrice: 0, visitDuration: 120, tips: '免费参观需预约' },\n  '冉庄地道战遗址': { ticketPrice: 30, visitDuration: 120, tips: '可体验地道' },\n  '冉庄': { ticketPrice: 30, visitDuration: 120, tips: '可体验地道' }\n};\n\n// 获取景点信息\nfunction getSpotInfo(name) {\n  for (const key of Object.keys(spotInfo)) {\n    if (name.includes(key) || key.includes(name)) {\n      return spotInfo[key];\n    }\n  }\n  return { ticketPrice: 50, visitDuration: 120, tips: '建议提前预约' };\n}\n\n// 按天分配景点\nconst spotsPerDay = Math.ceil(spots.length / duration);\nconst days = [];\nlet totalCost = 0;\nlet totalDistance = 0;\n\nfor (let d = 0; d < duration; d++) {\n  const daySpots = spots.slice(d * spotsPerDay, (d + 1) * spotsPerDay);\n  const date = new Date(startDate);\n  date.setDate(date.getDate() + d);\n  \n  const spotPlans = daySpots.map((name, idx) => {\n    const info = getSpotInfo(name);\n    totalCost += info.ticketPrice;\n    const hour = 9 + idx * 3;\n    return {\n      order: idx + 1,\n      name: name,\n      duration: Math.round(info.visitDuration / 60) + '小时',\n      tips: info.tips,\n      arrivalTime: `${hour.toString().padStart(2, '0')}:00`,\n      departureTime: `${(hour + 2).toString().padStart(2, '0')}:00`\n    };\n  });\n  \n  if (daySpots.length > 1) {\n    totalDistance += daySpots.length * 30;\n  }\n  \n  days.push({\n    day: d + 1,\n    date: date.toISOString().split('T')[0],\n    spots: spotPlans,\n    meals: ['午餐：当地特色餐厅', '晚餐：酒店餐厅'],\n    accommodation: d < duration - 1 ? '当地三星级酒店' : null\n  });\n  \n  totalCost += 100; // 餐费\n  if (d < duration - 1) totalCost += 300; // 住宿\n}\n\nconst plan = {\n  title: `${spots[0] || '红色景点'}${spots.length > 1 ? '等' + spots.length + '景点' : ''}${duration}日游`,\n  description: '为您精心规划的河北红色之旅，重温革命历史，传承红色基因',\n  days: days,\n  totalDistance: totalDistance,\n  estimatedCost: totalCost,\n  tips: [\n    '携带身份证件，部分景区需要实名登记',\n    '穿舒适的鞋子，部分景区需要步行',\n    '提前预约免费景点，避免排队',\n    '注意天气变化，做好防晒或防雨准备',\n    '遵守景区规定，文明游览'\n  ]\n};\n\nreturn [{ json: { success: true, plan: plan } }];"
+      },
+      "id": "c1d2e3f4-2222-3333-4444-555566667777",
+      "name": "生成行程",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      },
+      "id": "c1d2e3f4-3333-4444-5555-666677778888",
+      "name": "响应",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [650, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "生成行程", "type": "main", "index": 0 }]] },
+    "生成行程": { "main": [[{ "node": "响应", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { 
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "instanceId": "local"
+  }
+}

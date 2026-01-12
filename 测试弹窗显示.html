@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试弹窗显示</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f5f7fa;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+    }
+    h1 {
+      color: #a0182f;
+    }
+    .step {
+      background: #fff9e6;
+      border-left: 4px solid #ffd700;
+      padding: 15px;
+      margin: 15px 0;
+    }
+    button {
+      background: #a0182f;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px 5px;
+    }
+    button:hover {
+      background: #8b1538;
+    }
+    .code {
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+      font-family: monospace;
+      font-size: 13px;
+    }
+    .screenshot {
+      border: 2px solid #ddd;
+      padding: 10px;
+      margin: 15px 0;
+      background: #fafafa;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 测试弹窗显示</h1>
+    
+    <div class="step">
+      <strong>请按以下步骤操作：</strong>
+    </div>
+
+    <h2>步骤 1: 打开众创空间</h2>
+    <button onclick="window.open('http://localhost:3001/creative', '_blank')">🚀 打开众创空间</button>
+
+    <h2>步骤 2: 点击作品并截图</h2>
+    <div class="step">
+      <ol>
+        <li>在众创空间页面，点击任意作品卡片</li>
+        <li>弹窗打开后，按 <code>F12</code> 打开开发者工具</li>
+        <li>在 Elements 标签中，搜索 <code>detail-media</code></li>
+        <li>查看这个元素的样式和内容</li>
+      </ol>
+    </div>
+
+    <h2>步骤 3: 检查以下内容</h2>
+    <div class="step">
+      <p><strong>在弹窗中你应该看到：</strong></p>
+      <ul>
+        <li>✅ 顶部有一个关闭按钮（X）</li>
+        <li>✅ 下面有一个黑色背景的区域（这是媒体显示区）</li>
+        <li>✅ 黑色区域里有图片或视频</li>
+        <li>✅ 再下面是作品标题、设计师信息</li>
+        <li>✅ 统计数据（浏览量、点赞数、评论数）</li>
+        <li>✅ 作品简介</li>
+        <li>✅ 作品标签</li>
+        <li>✅ 底部操作按钮</li>
+      </ul>
+    </div>
+
+    <h2>步骤 4: 如果看不到黑色区域</h2>
+    <div class="step">
+      <p><strong>可能的原因：</strong></p>
+      <ol>
+        <li><strong>元素被隐藏了</strong>
+          <div class="code">在 Elements 标签中检查 .detail-media 元素
+是否有 display: none 或 visibility: hidden</div>
+        </li>
+        <li><strong>高度为 0</strong>
+          <div class="code">检查 .detail-media 的 height 属性
+应该有高度值</div>
+        </li>
+        <li><strong>被其他元素遮挡</strong>
+          <div class="code">检查 z-index 属性</div>
+        </li>
+        <li><strong>currentWork 数据为空</strong>
+          <div class="code">在 Console 中输入: 
+console.log(document.querySelector('.detail-media'))</div>
+        </li>
+      </ol>
+    </div>
+
+    <h2>步骤 5: 在控制台执行以下命令</h2>
+    <div class="step">
+      <p>打开 Console 标签，依次执行：</p>
+      <div class="code">// 1. 检查媒体区域是否存在
+console.log('媒体区域:', document.querySelector('.detail-media'))
+
+// 2. 检查媒体区域的样式
+const media = document.querySelector('.detail-media')
+if (media) {
+  console.log('display:', window.getComputedStyle(media).display)
+  console.log('height:', window.getComputedStyle(media).height)
+  console.log('width:', window.getComputedStyle(media).width)
+}
+
+// 3. 检查图片/视频元素
+console.log('图片:', document.querySelector('.detail-image'))
+console.log('视频:', document.querySelector('.video-player'))
+
+// 4. 检查图片/视频的 src
+const img = document.querySelector('.detail-image')
+const video = document.querySelector('.video-player')
+if (img) console.log('图片 src:', img.src)
+if (video) console.log('视频 src:', video.src)</div>
+    </div>
+
+    <h2>步骤 6: 截图给我看</h2>
+    <div class="screenshot">
+      <p><strong>请截图以下内容：</strong></p>
+      <ol>
+        <li>整个弹窗的样子</li>
+        <li>Elements 标签中 .detail-media 元素的 HTML</li>
+        <li>Elements 标签中 .detail-media 元素的 Styles</li>
+        <li>Console 标签中上面命令的输出</li>
+      </ol>
+      <p>然后告诉我你看到了什么，或者把截图发给我。</p>
+    </div>
+
+    <h2>快速诊断</h2>
+    <div class="step">
+      <p><strong>告诉我以下信息：</strong></p>
+      <ul>
+        <li>弹窗打开了吗？</li>
+        <li>弹窗里有内容吗？</li>
+        <li>有没有看到黑色的区域？</li>
+        <li>黑色区域里有东西吗？</li>
+        <li>控制台有什么错误吗？</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    console.log('=== 测试页面已加载 ===');
+    console.log('请打开众创空间，点击作品，然后按照步骤操作');
+  </script>
+</body>
+</html>

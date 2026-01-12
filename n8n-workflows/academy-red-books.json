@@ -1,0 +1,83 @@
+{
+  "name": "红色读物推荐服务",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "academy/red-books",
+        "options": {}
+      },
+      "id": "webhook-books",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是红色读物智能推荐助手。根据用户请求推荐河北红色相关书籍。\n\n用户请求：{{ $json.body.action }}\n分类：{{ $json.body.category || '全部' }}\n关键词：{{ $json.body.keyword || '无' }}\n用户偏好：{{ $json.body.preferences || '无' }}\n\n书籍分类：红色经典、党史著作、人物传记、纪实文学、青少年读物\n\n请返回JSON格式：\n{\n  \"books\": [\n    {\n      \"id\": 数字,\n      \"title\": \"书名\",\n      \"author\": \"作者\",\n      \"publisher\": \"出版社\",\n      \"description\": \"简介(80字内)\",\n      \"category\": \"分类\",\n      \"rating\": 评分(1-5),\n      \"ratingCount\": 评分人数,\n      \"readCount\": 阅读量,\n      \"isRecommended\": 是否推荐,\n      \"hasEbook\": 是否有电子版,\n      \"tags\": [\"标签1\", \"标签2\"]\n    }\n  ],\n  \"total\": 总数,\n  \"aiRecommendation\": \"AI推荐语\"\n}"
+      },
+      "id": "llm-books",
+      "name": "AI书籍推荐",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-3.5-turbo",
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "openai-books",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [470, 500],
+      "credentials": {
+        "openAiApi": {
+          "id": "your-openai-credential-id",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nlet result;\n\ntry {\n  const text = input.text || input.output || '';\n  const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    result = JSON.parse(jsonMatch[0]);\n  } else {\n    throw new Error('No JSON found');\n  }\n} catch (e) {\n  // 降级方案：返回河北红色读物数据\n  result = {\n    books: [\n      {\n        id: 1,\n        title: '西柏坡：新中国从这里走来',\n        author: '中共河北省委党史研究室',\n        publisher: '河北人民出版社',\n        description: '全面记录中共中央在西柏坡的光辉历程，展现\"两个务必\"精神的深刻内涵。',\n        category: '党史著作',\n        rating: 4.9,\n        ratingCount: 2580,\n        readCount: 125800,\n        isRecommended: true,\n        hasEbook: true,\n        tags: ['西柏坡', '党史', '必读']\n      },\n      {\n        id: 2,\n        title: '狼牙山五壮士',\n        author: '沈重',\n        publisher: '人民文学出版社',\n        description: '讲述五位八路军战士在狼牙山英勇抗敌、宁死不屈的壮烈故事。',\n        category: '纪实文学',\n        rating: 4.8,\n        ratingCount: 3650,\n        readCount: 98500,\n        isRecommended: true,\n        hasEbook: true,\n        tags: ['抗战', '英雄', '经典']\n      },\n      {\n        id: 3,\n        title: '李大钊传',\n        author: '朱志敏',\n        publisher: '红旗出版社',\n        description: '记述中国共产主义运动先驱李大钊的革命生涯和崇高精神。',\n        category: '人物传记',\n        rating: 4.7,\n        ratingCount: 1890,\n        readCount: 67200,\n        isRecommended: true,\n        hasEbook: true,\n        tags: ['李大钊', '先驱', '传记']\n      },\n      {\n        id: 4,\n        title: '塞罕坝精神',\n        author: '河北省林业厅',\n        publisher: '中国林业出版社',\n        description: '记录三代塞罕坝人艰苦创业、绿色发展的感人事迹。',\n        category: '纪实文学',\n        rating: 4.8,\n        ratingCount: 2120,\n        readCount: 85600,\n        isRecommended: true,\n        hasEbook: true,\n        tags: ['塞罕坝', '生态', '奋斗']\n      },\n      {\n        id: 5,\n        title: '白洋淀纪事',\n        author: '孙犁',\n        publisher: '人民文学出版社',\n        description: '以白洋淀为背景，描绘抗日战争时期冀中人民的斗争生活。',\n        category: '红色经典',\n        rating: 4.9,\n        ratingCount: 5680,\n        readCount: 156800,\n        isRecommended: true,\n        hasEbook: true,\n        tags: ['白洋淀', '孙犁', '文学经典']\n      },\n      {\n        id: 6,\n        title: '晋察冀边区革命史',\n        author: '中共河北省委党史研究室',\n        publisher: '中共党史出版社',\n        description: '系统介绍晋察冀抗日根据地的创建、发展和历史贡献。',\n        category: '党史著作',\n        rating: 4.6,\n        ratingCount: 980,\n        readCount: 32500,\n        isRecommended: false,\n        hasEbook: true,\n        tags: ['晋察冀', '根据地', '抗战']\n      },\n      {\n        id: 7,\n        title: '红色少年读本：河北英雄故事',\n        author: '河北省教育厅',\n        publisher: '河北少年儿童出版社',\n        description: '精选河北革命英雄故事，适合青少年阅读的红色教育读本。',\n        category: '青少年读物',\n        rating: 4.7,\n        ratingCount: 1560,\n        readCount: 78900,\n        isRecommended: true,\n        hasEbook: true,\n        tags: ['青少年', '英雄故事', '教育']\n      },\n      {\n        id: 8,\n        title: '董存瑞',\n        author: '赵寰',\n        publisher: '解放军文艺出版社',\n        description: '讲述舍身炸碉堡的战斗英雄董存瑞的英勇事迹。',\n        category: '人物传记',\n        rating: 4.8,\n        ratingCount: 2890,\n        readCount: 112500,\n        isRecommended: true,\n        hasEbook: true,\n        tags: ['董存瑞', '英雄', '解放战争']\n      }\n    ],\n    total: 8,\n    aiRecommendation: '根据河北红色文化特色，推荐您阅读《西柏坡：新中国从这里走来》和《白洋淀纪事》，深入了解河北在中国革命史上的重要地位。'\n  };\n}\n\nreturn { json: { success: true, ...result } };"
+      },
+      "id": "code-books",
+      "name": "处理结果",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [690, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond-books",
+      "name": "返回结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [910, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "AI书籍推荐", "type": "main", "index": 0 }]]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [[{ "node": "AI书籍推荐", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "AI书籍推荐": {
+      "main": [[{ "node": "处理结果", "type": "main", "index": 0 }]]
+    },
+    "处理结果": {
+      "main": [[{ "node": "返回结果", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

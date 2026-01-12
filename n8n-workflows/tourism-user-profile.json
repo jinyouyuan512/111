@@ -1,0 +1,78 @@
+{
+  "name": "智慧旅游 - 用户画像分析",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/user-profile",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "p1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 准备用户数据\nconst input = $input.first().json;\nconst userId = input.userId || 'guest';\n\n// 模拟用户历史数据（实际应从数据库获取）\nconst userHistory = input.history || {\n  visits: [\n    { spotName: '西柏坡纪念馆', date: '2025-10-15', duration: 180, rating: 5 },\n    { spotName: '狼牙山五壮士纪念地', date: '2025-08-20', duration: 240, rating: 4 },\n    { spotName: '白洋淀雁翎队纪念馆', date: '2025-07-10', duration: 300, rating: 5 }\n  ],\n  searches: ['红色旅游', '革命圣地', '亲子游', '一日游'],\n  favorites: ['西柏坡纪念馆', '塞罕坝展览馆'],\n  reviews: [{ spotName: '西柏坡纪念馆', rating: 5, content: '非常有教育意义' }]\n};\n\n// 景点分类\nconst spotCategories = {\n  '西柏坡纪念馆': '革命圣地',\n  '狼牙山五壮士纪念地': '抗战遗址',\n  '白洋淀雁翎队纪念馆': '抗战遗址',\n  '冉庄地道战遗址': '抗战遗址',\n  '晋察冀边区革命纪念馆': '革命历史',\n  '董存瑞烈士陵园': '英雄纪念',\n  '李大钊纪念馆': '革命先驱',\n  '八路军一二九师司令部旧址': '抗战指挥部',\n  '塞罕坝展览馆': '生态文明'\n};\n\n// 统计分类偏好\nconst categoryCount = {};\nfor (const visit of userHistory.visits) {\n  const category = spotCategories[visit.spotName] || '其他';\n  categoryCount[category] = (categoryCount[category] || 0) + 1;\n}\n\n// 计算基础指标\nconst avgRating = userHistory.visits.length > 0 \n  ? (userHistory.visits.reduce((sum, v) => sum + v.rating, 0) / userHistory.visits.length).toFixed(1)\n  : 0;\nconst avgDuration = userHistory.visits.length > 0\n  ? Math.round(userHistory.visits.reduce((sum, v) => sum + v.duration, 0) / userHistory.visits.length)\n  : 0;\n\n// 生成基础标签\nconst tags = [];\nif (Object.values(categoryCount).some(c => c >= 2)) tags.push('红色文化爱好者');\nif (userHistory.searches.includes('亲子游')) tags.push('亲子出行');\nif (userHistory.visits.length >= 3) tags.push('活跃用户');\nif (userHistory.reviews.length > 0) tags.push('乐于分享');\nif (avgRating >= 4.5) tags.push('高满意度');\n\nreturn {\n  userId,\n  visits: userHistory.visits.map(v => `${v.spotName}(${v.rating}分)`).join('、'),\n  searches: userHistory.searches.join('、'),\n  favorites: userHistory.favorites.join('、'),\n  categoryPreference: Object.entries(categoryCount).sort((a,b) => b[1]-a[1]).map(([k,v]) => `${k}:${v}次`).join('、'),\n  avgRating,\n  avgDuration,\n  tags,\n  totalVisits: userHistory.visits.length,\n  rawHistory: userHistory\n};"
+      },
+      "id": "p2",
+      "name": "准备用户数据",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "options": { "temperature": 0.7 }
+      },
+      "id": "p3",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [600, 500]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是用户行为分析专家，专注于河北红色旅游用户画像分析。\n\n用户数据：\n- 游览记录：{{ $json.visits }}\n- 搜索关键词：{{ $json.searches }}\n- 收藏景点：{{ $json.favorites }}\n- 分类偏好：{{ $json.categoryPreference }}\n- 平均评分：{{ $json.avgRating }}分\n- 平均游览时长：{{ $json.avgDuration }}分钟\n\n请分析用户画像，返回JSON：\n{\n  \"userType\": \"用户类型(如:红色文化深度爱好者/休闲观光客/亲子研学家庭/历史文化探索者)\",\n  \"personality\": \"性格特征描述(20字内)\",\n  \"insights\": [\"洞察1\", \"洞察2\", \"洞察3\"],\n  \"recommendations\": [\n    {\"type\": \"spot\", \"name\": \"推荐景点\", \"reason\": \"推荐理由\"},\n    {\"type\": \"route\", \"name\": \"推荐路线\", \"reason\": \"推荐理由\"}\n  ],\n  \"nextBestAction\": \"下一步建议\"\n}\n\n只返回JSON，不要其他内容。"
+      },
+      "id": "p4",
+      "name": "AI分析画像",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const baseData = $('准备用户数据').first().json;\nlet aiAnalysis = {};\n\ntry {\n  const aiText = $input.first().json.text || '';\n  const match = aiText.match(/\\{[\\s\\S]*\\}/);\n  if (match) aiAnalysis = JSON.parse(match[0]);\n} catch (e) {\n  // AI解析失败，使用默认分析\n  aiAnalysis = {\n    userType: '红色文化爱好者',\n    personality: '热爱历史，注重体验',\n    insights: [\n      `已游览${baseData.totalVisits}个红色景点`,\n      `平均评分${baseData.avgRating}分，满意度高`,\n      `偏好${baseData.categoryPreference.split('、')[0] || '革命圣地'}类景点`\n    ],\n    recommendations: [\n      { type: 'spot', name: '八路军一二九师司令部旧址', reason: '基于您对红色文化的兴趣' },\n      { type: 'route', name: '太行山红色生态游', reason: '结合自然风光与红色文化' }\n    ],\n    nextBestAction: '推荐体验太行山红色生态游路线'\n  };\n}\n\n// 构建完整用户画像\nconst profile = {\n  success: true,\n  userId: baseData.userId,\n  basicInfo: {\n    totalVisits: baseData.totalVisits,\n    totalFavorites: baseData.rawHistory.favorites.length,\n    totalReviews: baseData.rawHistory.reviews.length,\n    averageRating: parseFloat(baseData.avgRating),\n    averageVisitDuration: baseData.avgDuration + '分钟',\n    lastVisit: baseData.rawHistory.visits[0]?.date || 'N/A'\n  },\n  userType: aiAnalysis.userType,\n  personality: aiAnalysis.personality,\n  tags: baseData.tags,\n  preferences: {\n    favoriteCategories: baseData.categoryPreference.split('、').filter(Boolean),\n    searchKeywords: baseData.rawHistory.searches,\n    favoriteSpots: baseData.rawHistory.favorites\n  },\n  visitHistory: baseData.rawHistory.visits,\n  insights: aiAnalysis.insights,\n  recommendations: aiAnalysis.recommendations,\n  nextBestAction: aiAnalysis.nextBestAction,\n  generatedAt: new Date().toISOString()\n};\n\nreturn profile;"
+      },
+      "id": "p5",
+      "name": "组装画像",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "p6",
+      "name": "返回结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1100, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "准备用户数据", "type": "main", "index": 0 }]] },
+    "准备用户数据": { "main": [[{ "node": "AI分析画像", "type": "main", "index": 0 }]] },
+    "OpenAI Chat Model": { "ai_languageModel": [[{ "node": "AI分析画像", "type": "ai_languageModel", "index": 0 }]] },
+    "AI分析画像": { "main": [[{ "node": "组装画像", "type": "main", "index": 0 }]] },
+    "组装画像": { "main": [[{ "node": "返回结果", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

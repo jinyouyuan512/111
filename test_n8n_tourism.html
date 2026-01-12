@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>测试 n8n 旅游工作流</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 1000px; margin: 0 auto; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        h2 { color: #333; margin-top: 0; }
+        button { padding: 10px 20px; background: #52c41a; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #389e0d; }
+        pre { background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; }
+        .success { color: green; }
+        .error { color: red; }
+        input, select { padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 n8n 旅游工作流测试</h1>
+    
+    <div class="test-section">
+        <h2>1. 测试语音讲解 (AI生成)</h2>
+        <input type="text" id="spotName" value="西柏坡" placeholder="景点名称">
+        <button onclick="testAudioGuide()">获取语音讲解</button>
+        <pre id="audioResult">点击按钮测试...</pre>
+    </div>
+
+    <div class="test-section">
+        <h2>2. 测试热门路线</h2>
+        <button onclick="testRoutes()">获取热门路线</button>
+        <pre id="routesResult">点击按钮测试...</pre>
+    </div>
+
+    <div class="test-section">
+        <h2>3. 测试AI行程规划</h2>
+        <input type="text" id="planSpots" value="西柏坡,狼牙山" placeholder="景点(逗号分隔)">
+        <select id="planDays">
+            <option value="1">1天</option>
+            <option value="2">2天</option>
+            <option value="3">3天</option>
+        </select>
+        <button onclick="testAIPlan()">AI生成行程</button>
+        <pre id="planResult">点击按钮测试...</pre>
+    </div>
+
+    <div class="test-section">
+        <h2>4. 测试AI聊天</h2>
+        <input type="text" id="chatQuestion" value="西柏坡有什么必看景点？" placeholder="问题" style="width: 300px;">
+        <button onclick="testAIChat()">发送问题</button>
+        <pre id="chatResult">点击按钮测试...</pre>
+    </div>
+
+    <script>
+        const N8N_URL = 'http://localhost:5678';
+
+        async function testAudioGuide() {
+            const spotName = document.getElementById('spotName').value;
+            const resultEl = document.getElementById('audioResult');
+            resultEl.textContent = '请求中...';
+            
+            try {
+                const res = await fetch(`${N8N_URL}/webhook/tourism/audio-guide`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ spotName })
+                });
+                const data = await res.json();
+                resultEl.innerHTML = `<span class="success">✅ 成功</span>\n${JSON.stringify(data, null, 2)}`;
+            } catch (e) {
+                resultEl.innerHTML = `<span class="error">❌ 错误: ${e.message}</span>\n\n可能原因:\n1. n8n 未运行\n2. 工作流未激活\n3. 凭证未配置`;
+            }
+        }
+
+        async function testRoutes() {
+            const resultEl = document.getElementById('routesResult');
+            resultEl.textContent = '请求中...';
+            
+            try {
+                const res = await fetch(`${N8N_URL}/webhook/tourism/routes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const data = await res.json();
+                resultEl.innerHTML = `<span class="success">✅ 成功</span>\n${JSON.stringify(data, null, 2)}`;
+            } catch (e) {
+                resultEl.innerHTML = `<span class="error">❌ 错误: ${e.message}</span>`;
+            }
+        }
+
+        async function testAIPlan() {
+            const spots = document.getElementById('planSpots').value.split(',').map(s => s.trim());
+            const duration = parseInt(document.getElementById('planDays').value);
+            const resultEl = document.getElementById('planResult');
+            resultEl.textContent = '请求中... (AI生成可能需要10-30秒)';
+            
+            try {
+                const res = await fetch(`${N8N_URL}/webhook/tourism/ai-plan`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ spots, duration, startDate: new Date().toISOString().split('T')[0] })
+                });
+                const data = await res.json();
+                resultEl.innerHTML = `<span class="success">✅ 成功</span>\n${JSON.stringify(data, null, 2)}`;
+            } catch (e) {
+                resultEl.innerHTML = `<span class="error">❌ 错误: ${e.message}</span>`;
+            }
+        }
+
+        async function testAIChat() {
+            const question = document.getElementById('chatQuestion').value;
+            const resultEl = document.getElementById('chatResult');
+            resultEl.textContent = '请求中...';
+            
+            try {
+                const res = await fetch(`${N8N_URL}/webhook/tourism/ai-chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question, sessionId: 'test-' + Date.now() })
+                });
+                const data = await res.json();
+                resultEl.innerHTML = `<span class="success">✅ 成功</span>\n${JSON.stringify(data, null, 2)}`;
+            } catch (e) {
+                resultEl.innerHTML = `<span class="error">❌ 错误: ${e.message}</span>`;
+            }
+        }
+    </script>
+</body>
+</html>

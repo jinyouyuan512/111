@@ -1,0 +1,100 @@
+{
+  "name": "红色新闻搜索采集",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "academy/search-news",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 定义要搜索的红色新闻关键词\nconst keywords = [\n  '西柏坡 纪念馆',\n  '河北 红色教育',\n  '狼牙山 五壮士',\n  '塞罕坝 精神',\n  '白洋淀 雁翎队',\n  '李大钊 故居',\n  '董存瑞 纪念',\n  '河北 党史学习'\n];\n\nconst items = keywords.map(keyword => ({\n  json: { keyword }\n}));\n\nreturn items;"
+      },
+      "id": "keywords",
+      "name": "搜索关键词",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "url": "=https://www.baidu.com/s?wd={{ encodeURIComponent($json.keyword + ' site:hebnews.cn') }}&rn=5",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "search",
+      "name": "搜索新闻",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 从搜索结果中提取新闻信息\n// 注意：实际使用时需要解析HTML或使用专门的新闻API\n\nconst keyword = $input.first().json.keyword;\nconst categories = {\n  '西柏坡': '纪念活动',\n  '红色教育': '教育实践',\n  '狼牙山': '红色故事',\n  '塞罕坝': '教育实践',\n  '白洋淀': '红色故事',\n  '李大钊': '红色故事',\n  '董存瑞': '纪念活动',\n  '党史': '党建动态'\n};\n\nlet category = '党建动态';\nfor (const [key, cat] of Object.entries(categories)) {\n  if (keyword.includes(key)) {\n    category = cat;\n    break;\n  }\n}\n\n// 生成模拟的搜索结果\nconst news = {\n  title: keyword.replace(' ', '：') + ' - 最新报道',\n  summary: `关于${keyword}的最新新闻报道，深入了解河北红色文化传承。`,\n  category: category,\n  source: '河北新闻网',\n  externalUrl: `https://www.hebnews.cn/search?keyword=${encodeURIComponent(keyword)}`,\n  publishTime: new Date().toISOString(),\n  viewCount: Math.floor(Math.random() * 100000),\n  likeCount: Math.floor(Math.random() * 10000),\n  isHot: Math.random() > 0.5 ? 1 : 0\n};\n\nreturn [{ json: news }];"
+      },
+      "id": "parse",
+      "name": "解析结果",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO red_news (title, summary, category, source, external_url, publish_time, view_count, like_count, is_top, is_hot, status, deleted) VALUES ('{{ $json.title }}', '{{ $json.summary }}', '{{ $json.category }}', '{{ $json.source }}', '{{ $json.externalUrl }}', NOW(), {{ $json.viewCount }}, {{ $json.likeCount }}, 0, {{ $json.isHot }}, 'published', 0) ON DUPLICATE KEY UPDATE external_url = VALUES(external_url), view_count = VALUES(view_count)"
+      },
+      "id": "save",
+      "name": "保存数据库",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [1050, 300],
+      "credentials": {
+        "mySql": {
+          "id": "1",
+          "name": "MySQL Academy"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, message: '新闻搜索采集完成' } }}"
+      },
+      "id": "respond",
+      "name": "响应",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "搜索关键词", "type": "main", "index": 0 }]]
+    },
+    "搜索关键词": {
+      "main": [[{ "node": "搜索新闻", "type": "main", "index": 0 }]]
+    },
+    "搜索新闻": {
+      "main": [[{ "node": "解析结果", "type": "main", "index": 0 }]]
+    },
+    "解析结果": {
+      "main": [[{ "node": "保存数据库", "type": "main", "index": 0 }]]
+    },
+    "保存数据库": {
+      "main": [[{ "node": "响应", "type": "main", "index": 0 }]]
+    }
+  }
+}

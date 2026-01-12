@@ -1,0 +1,114 @@
+{
+  "name": "智慧旅游-AI聊天(冀小游)v2",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/ai-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json.body || {};\nconst question = input.question || '你好';\n\n// 河北红色景点信息\nconst spots = [\n  '【西柏坡纪念馆】新中国从这里走来，解放战争时期中央所在地。地址：石家庄市平山县 门票：免费 开放时间：9:00-17:00',\n  '【狼牙山五壮士纪念地】英雄壮举，气壮山河。地址：保定市易县 门票：65元 开放时间：8:00-18:00',\n  '【白洋淀雁翎队纪念馆】华北明珠，水上传奇。地址：雄安新区安新县 门票：40元 开放时间：8:00-18:00',\n  '【塞罕坝展览馆】荒原变林海的绿色奇迹。地址：承德市围场县 门票：130元 开放时间：全天',\n  '【李大钊纪念馆】铁肩担道义，妙手著文章。地址：唐山市乐亭县 门票：免费 开放时间：9:00-16:30',\n  '【冉庄地道战遗址】地下长城，抗战奇迹。地址：保定市清苑区 门票：30元 开放时间：8:30-17:30'\n];\n\nconst systemPrompt = `你是冀小游，河北红色旅游智能助手。你热情友好，对河北的红色景点非常了解。\n\n你可以帮助游客：\n1. 介绍红色景点的历史和特色\n2. 推荐旅游路线\n3. 提供周边美食推荐\n4. 解答门票、开放时间等问题\n\n以下是河北主要红色景点信息：\n${spots.join('\\n')}\n\n回答要简洁友好，使用emoji增加亲和力。如果问题与河北红色旅游无关，礼貌地引导用户询问相关问题。`;\n\nreturn [{\n  json: {\n    systemPrompt,\n    question,\n    sessionId: input.sessionId || 'default'\n  }\n}];"
+      },
+      "id": "code-prepare",
+      "name": "准备提示词",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-3.5-turbo",
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.systemPrompt }}",
+              "role": "system"
+            },
+            {
+              "content": "={{ $json.question }}",
+              "role": "user"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 1000
+        }
+      },
+      "id": "openai-001",
+      "name": "OpenAI Chat",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.4,
+      "position": [650, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('准备提示词').first().json;\nconst openaiResponse = $input.first().json;\n\nlet answer = '';\nlet type = 'general';\n\ntry {\n  // n8n OpenAI 节点返回格式\n  answer = openaiResponse.message?.content || openaiResponse.choices?.[0]?.message?.content || openaiResponse.text || '';\n  \n  const ql = (input.question || '').toLowerCase();\n  if (ql.includes('西柏坡') || ql.includes('狼牙山') || ql.includes('白洋淀') || ql.includes('景点')) {\n    type = 'spot_info';\n  } else if (ql.includes('路线') || ql.includes('推荐') || ql.includes('行程')) {\n    type = 'route';\n  } else if (ql.includes('美食') || ql.includes('吃') || ql.includes('餐')) {\n    type = 'food';\n  } else if (ql.includes('天气') || ql.includes('穿')) {\n    type = 'weather';\n  }\n} catch (e) {\n  answer = '抱歉，我暂时无法回答这个问题。您可以问我关于河北红色景点、旅游路线或周边美食的问题。';\n}\n\nif (!answer) {\n  answer = '👋 您好！我是冀小游，河北红色旅游智能助手。请问有什么可以帮您的？';\n}\n\nreturn [{\n  json: {\n    answer: answer,\n    type: type,\n    sessionId: input.sessionId || 'default',\n    suggestions: ['西柏坡有什么必看景点？', '推荐一日游路线', '附近有什么美食？'],\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "code-format",
+      "name": "格式化结果",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-001",
+      "name": "响应",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "准备提示词", "type": "main", "index": 0 }]]
+    },
+    "准备提示词": {
+      "main": [[{ "node": "OpenAI Chat", "type": "main", "index": 0 }]]
+    },
+    "OpenAI Chat": {
+      "main": [[{ "node": "格式化结果", "type": "main", "index": 0 }]]
+    },
+    "格式化结果": {
+      "main": [[{ "node": "响应", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "instanceId": "local"
+  }
+}

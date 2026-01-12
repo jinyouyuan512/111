@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试图片URL访问</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .test-section {
+      background: white;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h2 {
+      color: #a0182f;
+      border-bottom: 2px solid #a0182f;
+      padding-bottom: 10px;
+    }
+    .url-test {
+      margin: 15px 0;
+      padding: 15px;
+      background: #f9f9f9;
+      border-left: 4px solid #a0182f;
+    }
+    .url-text {
+      word-break: break-all;
+      color: #333;
+      margin-bottom: 10px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .test-image {
+      max-width: 100%;
+      border: 2px solid #ddd;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+    .status {
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-weight: bold;
+      display: inline-block;
+      margin-top: 10px;
+    }
+    .status.success {
+      background: #4caf50;
+      color: white;
+    }
+    .status.error {
+      background: #f44336;
+      color: white;
+    }
+    .status.loading {
+      background: #ff9800;
+      color: white;
+    }
+    .instructions {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    .instructions h3 {
+      margin-top: 0;
+      color: #856404;
+    }
+    .instructions ol {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    .instructions li {
+      margin: 5px 0;
+    }
+    button {
+      background: #a0182f;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+    }
+    button:hover {
+      background: #8b1538;
+    }
+    .network-info {
+      background: #e3f2fd;
+      border: 1px solid #2196f3;
+      padding: 15px;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+    .network-info pre {
+      background: #263238;
+      color: #aed581;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 图片URL访问测试</h1>
+  
+  <div class="instructions">
+    <h3>📋 测试说明</h3>
+    <ol>
+      <li>这个页面会测试你上传的图片URL是否可以访问</li>
+      <li>如果图片加载成功，说明URL正确且文件存在</li>
+      <li>如果图片加载失败，说明文件不存在或后端服务未启动</li>
+      <li>打开浏览器开发者工具（F12）→ Network 标签，查看图片请求的状态码</li>
+      <li>状态码 200 = 成功，404 = 文件不存在，500 = 服务器错误</li>
+    </ol>
+  </div>
+
+  <div class="test-section">
+    <h2>测试1：你上传的封面图片</h2>
+    <div class="url-test">
+      <div class="url-text" id="coverUrl">http://localhost:8083/uploads/images/2026/01/04/36b56a91-ba57-403d-acd5-6d6d6805e41c.png</div>
+      <div class="status loading" id="coverStatus">加载中...</div>
+      <img 
+        id="coverImage" 
+        class="test-image" 
+        src="http://localhost:8083/uploads/images/2026/01/04/36b56a91-ba57-403d-acd5-6d6d6805e41c.png"
+        alt="封面图片"
+        onload="handleImageLoad('cover')"
+        onerror="handleImageError('cover')"
+      />
+      <div class="network-info" id="coverNetwork" style="display: none;">
+        <strong>网络请求信息：</strong>
+        <pre id="coverNetworkDetails"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>测试2：你上传的作品文件1</h2>
+    <div class="url-test">
+      <div class="url-text" id="file1Url">http://localhost:8083/uploads/images/2026/01/04/eb2628fb-3724-4f4a-9fe4-d3d1210c3a98.png</div>
+      <div class="status loading" id="file1Status">加载中...</div>
+      <img 
+        id="file1Image" 
+        class="test-image" 
+        src="http://localhost:8083/uploads/images/2026/01/04/eb2628fb-3724-4f4a-9fe4-d3d1210c3a98.png"
+        alt="作品文件1"
+        onload="handleImageLoad('file1')"
+        onerror="handleImageError('file1')"
+      />
+      <div class="network-info" id="file1Network" style="display: none;">
+        <strong>网络请求信息：</strong>
+        <pre id="file1NetworkDetails"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>测试3：你上传的作品文件2</h2>
+    <div class="url-test">
+      <div class="url-text" id="file2Url">http://localhost:8083/uploads/images/2026/01/04/a4a78475-5cde-476f-b7db-e044e5faeb72.png</div>
+      <div class="status loading" id="file2Status">加载中...</div>
+      <img 
+        id="file2Image" 
+        class="test-image" 
+        src="http://localhost:8083/uploads/images/2026/01/04/a4a78475-5cde-476f-b7db-e044e5faeb72.png"
+        alt="作品文件2"
+        onload="handleImageLoad('file2')"
+        onerror="handleImageError('file2')"
+      />
+      <div class="network-info" id="file2Network" style="display: none;">
+        <strong>网络请求信息：</strong>
+        <pre id="file2NetworkDetails"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>测试4：直接访问URL</h2>
+    <p>点击下面的按钮在新标签页中打开图片URL，查看是否能直接访问：</p>
+    <button onclick="window.open('http://localhost:8083/uploads/images/2026/01/04/36b56a91-ba57-403d-acd5-6d6d6805e41c.png', '_blank')">
+      打开封面图片
+    </button>
+    <button onclick="window.open('http://localhost:8083/uploads/images/2026/01/04/eb2628fb-3724-4f4a-9fe4-d3d1210c3a98.png', '_blank')">
+      打开作品文件1
+    </button>
+    <button onclick="window.open('http://localhost:8083/uploads/images/2026/01/04/a4a78475-5cde-476f-b7db-e044e5faeb72.png', '_blank')">
+      打开作品文件2
+    </button>
+  </div>
+
+  <div class="test-section">
+    <h2>测试5：Fetch API 测试</h2>
+    <p>使用 Fetch API 检查图片URL的HTTP状态：</p>
+    <button onclick="testFetch()">开始测试</button>
+    <div id="fetchResults" style="margin-top: 15px;"></div>
+  </div>
+
+  <script>
+    function handleImageLoad(type) {
+      const statusEl = document.getElementById(type + 'Status');
+      const imageEl = document.getElementById(type + 'Image');
+      statusEl.textContent = '✅ 加载成功！';
+      statusEl.className = 'status success';
+      
+      // 显示图片尺寸信息
+      const networkEl = document.getElementById(type + 'Network');
+      const detailsEl = document.getElementById(type + 'NetworkDetails');
+      networkEl.style.display = 'block';
+      detailsEl.textContent = `图片尺寸: ${imageEl.naturalWidth} x ${imageEl.naturalHeight}px\n文件大小: 约 ${(imageEl.naturalWidth * imageEl.naturalHeight * 4 / 1024).toFixed(2)} KB（估算）`;
+    }
+
+    function handleImageError(type) {
+      const statusEl = document.getElementById(type + 'Status');
+      const imageEl = document.getElementById(type + 'Image');
+      statusEl.textContent = '❌ 加载失败！文件不存在或无法访问';
+      statusEl.className = 'status error';
+      
+      const networkEl = document.getElementById(type + 'Network');
+      const detailsEl = document.getElementById(type + 'NetworkDetails');
+      networkEl.style.display = 'block';
+      detailsEl.textContent = `错误: 图片加载失败\n可能原因:\n1. 文件不存在于服务器\n2. 后端服务未启动（端口8083）\n3. 静态资源路径配置错误\n4. CORS跨域问题`;
+    }
+
+    async function testFetch() {
+      const urls = [
+        'http://localhost:8083/uploads/images/2026/01/04/36b56a91-ba57-403d-acd5-6d6d6805e41c.png',
+        'http://localhost:8083/uploads/images/2026/01/04/eb2628fb-3724-4f4a-9fe4-d3d1210c3a98.png',
+        'http://localhost:8083/uploads/images/2026/01/04/a4a78475-5cde-476f-b7db-e044e5faeb72.png'
+      ];
+
+      const resultsEl = document.getElementById('fetchResults');
+      resultsEl.innerHTML = '<div style="color: #ff9800;">测试中...</div>';
+
+      let html = '';
+      for (let i = 0; i < urls.length; i++) {
+        const url = urls[i];
+        const name = i === 0 ? '封面图片' : `作品文件${i}`;
+        
+        try {
+          const response = await fetch(url, { method: 'HEAD' });
+          const status = response.status;
+          const statusText = response.statusText;
+          const contentType = response.headers.get('content-type');
+          const contentLength = response.headers.get('content-length');
+
+          if (status === 200) {
+            html += `<div style="background: #e8f5e9; padding: 10px; margin: 5px 0; border-radius: 4px;">
+              <strong>${name}:</strong> ✅ 可访问<br>
+              状态码: ${status} ${statusText}<br>
+              类型: ${contentType || '未知'}<br>
+              大小: ${contentLength ? (contentLength / 1024).toFixed(2) + ' KB' : '未知'}
+            </div>`;
+          } else {
+            html += `<div style="background: #ffebee; padding: 10px; margin: 5px 0; border-radius: 4px;">
+              <strong>${name}:</strong> ❌ 无法访问<br>
+              状态码: ${status} ${statusText}
+            </div>`;
+          }
+        } catch (error) {
+          html += `<div style="background: #ffebee; padding: 10px; margin: 5px 0; border-radius: 4px;">
+            <strong>${name}:</strong> ❌ 请求失败<br>
+            错误: ${error.message}<br>
+            <small>可能原因: 后端服务未启动或CORS配置问题</small>
+          </div>`;
+        }
+      }
+
+      resultsEl.innerHTML = html;
+    }
+
+    // 页面加载完成后自动运行 Fetch 测试
+    window.addEventListener('load', () => {
+      setTimeout(testFetch, 2000);
+    });
+  </script>
+</body>
+</html>

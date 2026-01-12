@@ -1,0 +1,85 @@
+{
+  "name": "传承学院-书籍同步(简化版)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "days", "daysInterval": 1 }]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "每天定时触发",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "academy/sync-books-now",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-manual",
+      "name": "手动触发",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 直接生成河北红色书籍数据\nconst now = new Date();\nconst dateStr = now.toISOString().slice(0, 19).replace('T', ' ');\n\nconst booksData = [\n  {\n    title: '西柏坡：新中国从这里走来',\n    author: '中共河北省委党史研究室',\n    publisher: '河北人民出版社',\n    isbn: '978-7-202-12345-6',\n    description: '本书全面记录了中共中央在西柏坡的光辉历程，深入解读了西柏坡精神的科学内涵和时代价值。',\n    category: '党史著作',\n    page_count: 380,\n    publish_date: '2023-07-01',\n    rating: 4.9,\n    is_recommended: 1,\n    has_ebook: 1,\n    tags: '西柏坡,党史,必读,新中国',\n    external_url: 'https://search.jd.com/Search?keyword=西柏坡',\n    created_at: dateStr\n  },\n  {\n    title: '狼牙山五壮士',\n    author: '沈重',\n    publisher: '人民文学出版社',\n    isbn: '978-7-020-12346-7',\n    description: '本书讲述了1941年狼牙山战斗中，五位八路军战士为掩护群众和主力撤退，在弹尽粮绝后跳崖的壮烈故事。',\n    category: '纪实文学',\n    page_count: 256,\n    publish_date: '2021-09-01',\n    rating: 4.8,\n    is_recommended: 1,\n    has_ebook: 1,\n    tags: '抗战,英雄,经典,狼牙山',\n    external_url: 'https://search.jd.com/Search?keyword=狼牙山五壮士',\n    created_at: dateStr\n  },\n  {\n    title: '白洋淀纪事',\n    author: '孙犁',\n    publisher: '人民文学出版社',\n    isbn: '978-7-020-12349-0',\n    description: '孙犁代表作，以白洋淀为背景，描绘了抗日战争时期冀中人民的斗争生活。作品语言优美，人物形象鲜明，是中国现代文学的经典之作。',\n    category: '红色经典',\n    page_count: 280,\n    publish_date: '2020-05-01',\n    rating: 4.9,\n    is_recommended: 1,\n    has_ebook: 1,\n    tags: '白洋淀,孙犁,文学经典,抗战',\n    external_url: 'https://search.jd.com/Search?keyword=白洋淀纪事',\n    created_at: dateStr\n  },\n  {\n    title: '塞罕坝精神',\n    author: '河北省林业厅',\n    publisher: '中国林业出版社',\n    isbn: '978-7-503-12348-9',\n    description: '本书记录了三代塞罕坝人艰苦创业、绿色发展的感人事迹，深刻诠释了\"牢记使命、艰苦创业、绿色发展\"的塞罕坝精神。',\n    category: '纪实文学',\n    page_count: 320,\n    publish_date: '2022-08-01',\n    rating: 4.8,\n    is_recommended: 1,\n    has_ebook: 1,\n    tags: '塞罕坝,生态,奋斗,绿色发展',\n    external_url: 'https://search.jd.com/Search?keyword=塞罕坝精神',\n    created_at: dateStr\n  },\n  {\n    title: '李大钊传',\n    author: '朱志敏',\n    publisher: '红旗出版社',\n    isbn: '978-7-505-12347-8',\n    description: '本书全面记述了中国共产主义运动先驱李大钊的革命生涯，展现了他为传播马克思主义、创建中国共产党所作出的卓越贡献。',\n    category: '人物传记',\n    page_count: 420,\n    publish_date: '2022-04-01',\n    rating: 4.7,\n    is_recommended: 1,\n    has_ebook: 1,\n    tags: '李大钊,先驱,传记,马克思主义',\n    external_url: 'https://search.jd.com/Search?keyword=李大钊传',\n    created_at: dateStr\n  }\n];\n\nreturn booksData.map(item => ({ json: item }));"
+      },
+      "id": "generate-books",
+      "name": "生成书籍数据",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 400]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "red_book",
+        "columns": "title, author, publisher, isbn, description, category, page_count, publish_date, rating, is_recommended, has_ebook, tags, external_url, created_at",
+        "options": {}
+      },
+      "id": "insert-books",
+      "name": "写入MySQL",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [750, 400],
+      "credentials": {
+        "mySql": {
+          "id": "1",
+          "name": "MySQL jiyi_academy"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, message: '书籍同步完成', count: $items().length } }}"
+      },
+      "id": "response",
+      "name": "返回结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1000, 500]
+    }
+  ],
+  "connections": {
+    "每天定时触发": {
+      "main": [[{ "node": "生成书籍数据", "type": "main", "index": 0 }]]
+    },
+    "手动触发": {
+      "main": [[{ "node": "生成书籍数据", "type": "main", "index": 0 }]]
+    },
+    "生成书籍数据": {
+      "main": [[{ "node": "写入MySQL", "type": "main", "index": 0 }]]
+    },
+    "写入MySQL": {
+      "main": [[{ "node": "返回结果", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

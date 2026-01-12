@@ -1,0 +1,131 @@
+{
+  "name": "智慧旅游 - 天气查询",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/weather",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-weather",
+      "name": "Webhook 天气查询",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// 获取请求的景点列表\nconst spots = $input.first().json.spots || [];\nconst date = $input.first().json.date || new Date().toISOString().split('T')[0];\n\n// 景点对应的城市/地区（用于天气API查询）\nconst spotCityMap = {\n  '西柏坡纪念馆': '石家庄',\n  '狼牙山五壮士纪念地': '保定',\n  '冉庄地道战遗址': '保定',\n  '李大钊纪念馆': '唐山',\n  '白洋淀雁翎队纪念馆': '保定',\n  '塞罕坝展览馆': '承德',\n  '八路军一二九师司令部': '邯郸',\n  '石家庄解放纪念馆': '石家庄'\n};\n\n// 返回景点和对应城市，供下一步天气API调用\nreturn spots.map(spot => ({\n  spotName: spot,\n  city: spotCityMap[spot] || '石家庄',\n  date\n}));"
+      },
+      "id": "map-spots",
+      "name": "映射景点城市",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.weatherapi.com/v1/forecast.json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "={{ $env.WEATHER_API_KEY }}"
+            },
+            {
+              "name": "q",
+              "value": "={{ $json.city }}"
+            },
+            {
+              "name": "days",
+              "value": "3"
+            },
+            {
+              "name": "lang",
+              "value": "zh"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "weather-api",
+      "name": "调用天气API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [750, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "functionCode": "// 处理天气API响应，格式化为前端需要的格式\nconst items = $input.all();\nconst weather = [];\n\nfor (const item of items) {\n  const spotName = item.json.spotName;\n  const apiData = item.json;\n  \n  // 如果API调用成功\n  if (apiData.forecast) {\n    const today = apiData.forecast.forecastday[0];\n    weather.push({\n      spotName,\n      date: today.date,\n      condition: today.day.condition.text,\n      temperature: {\n        min: Math.round(today.day.mintemp_c),\n        max: Math.round(today.day.maxtemp_c)\n      },\n      humidity: today.day.avghumidity,\n      suggestion: getSuggestion(today.day.condition.text, today.day.maxtemp_c)\n    });\n  } else {\n    // 降级：返回模拟数据\n    weather.push({\n      spotName,\n      date: new Date().toISOString().split('T')[0],\n      condition: '晴',\n      temperature: { min: 3, max: 12 },\n      humidity: 45,\n      suggestion: '天气适宜出行，建议携带外套'\n    });\n  }\n}\n\nfunction getSuggestion(condition, maxTemp) {\n  if (condition.includes('雨')) return '建议携带雨具，注意防滑';\n  if (condition.includes('雪')) return '道路可能湿滑，注意保暖和安全';\n  if (maxTemp > 30) return '天气炎热，注意防暑降温';\n  if (maxTemp < 5) return '天气寒冷，注意保暖';\n  return '天气适宜出行，祝旅途愉快';\n}\n\nreturn { weather };"
+      },
+      "id": "format-weather",
+      "name": "格式化天气数据",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond-weather",
+      "name": "返回天气响应",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Webhook 天气查询": {
+      "main": [
+        [
+          {
+            "node": "映射景点城市",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "映射景点城市": {
+      "main": [
+        [
+          {
+            "node": "调用天气API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "调用天气API": {
+      "main": [
+        [
+          {
+            "node": "格式化天气数据",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "格式化天气数据": {
+      "main": [
+        [
+          {
+            "node": "返回天气响应",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

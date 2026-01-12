@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>登录状态持久化测试</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        input {
+            padding: 8px;
+            margin: 5px;
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <h1>登录状态持久化测试</h1>
+    
+    <div class="section">
+        <h2>1. 登录测试</h2>
+        <input type="text" id="username" placeholder="用户名" value="chovy">
+        <input type="password" id="password" placeholder="密码" value="123456">
+        <button onclick="testLogin()">登录</button>
+        <div id="loginResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>2. 检查 localStorage</h2>
+        <button onclick="checkLocalStorage()">检查存储</button>
+        <div id="storageResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>3. 验证 Token</h2>
+        <button onclick="validateToken()">验证当前Token</button>
+        <div id="validateResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>4. 清除存储</h2>
+        <button onclick="clearStorage()">清除所有登录信息</button>
+        <div id="clearResult"></div>
+    </div>
+
+    <script>
+        async function testLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('loginResult');
+            
+            try {
+                resultDiv.innerHTML = '<p>正在登录...</p>';
+                
+                const response = await fetch('http://localhost:8081/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                console.log('登录响应:', data);
+                
+                if (data.code === 200 && data.data) {
+                    const { accessToken, refreshToken, userInfo } = data.data;
+                    
+                    // 保存到 localStorage
+                    localStorage.setItem('token', accessToken);
+                    localStorage.setItem('refreshToken', refreshToken);
+                    localStorage.setItem('userInfo', JSON.stringify(userInfo));
+                    
+                    resultDiv.innerHTML = `
+                        <p class="success">✓ 登录成功！</p>
+                        <pre>${JSON.stringify(data.data, null, 2)}</pre>
+                        <p>Token已保存到localStorage</p>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<p class="error">✗ 登录失败: ${data.message || '未知错误'}</p>`;
+                }
+            } catch (error) {
+                console.error('登录错误:', error);
+                resultDiv.innerHTML = `<p class="error">✗ 登录错误: ${error.message}</p>`;
+            }
+        }
+
+        function checkLocalStorage() {
+            const resultDiv = document.getElementById('storageResult');
+            
+            const token = localStorage.getItem('token');
+            const refreshToken = localStorage.getItem('refreshToken');
+            const userInfoStr = localStorage.getItem('userInfo');
+            
+            let userInfo = null;
+            if (userInfoStr) {
+                try {
+                    userInfo = JSON.parse(userInfoStr);
+                } catch (e) {
+                    userInfo = { error: '解析失败', raw: userInfoStr };
+                }
+            }
+            
+            resultDiv.innerHTML = `
+                <h3>localStorage 内容:</h3>
+                <p><strong>token:</strong> ${token ? '✓ 存在 (长度: ' + token.length + ')' : '✗ 不存在'}</p>
+                <p><strong>refreshToken:</strong> ${refreshToken ? '✓ 存在' : '✗ 不存在'}</p>
+                <p><strong>userInfo:</strong> ${userInfo ? '✓ 存在' : '✗ 不存在'}</p>
+                ${userInfo ? '<pre>' + JSON.stringify(userInfo, null, 2) + '</pre>' : ''}
+            `;
+        }
+
+        async function validateToken() {
+            const resultDiv = document.getElementById('validateResult');
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                resultDiv.innerHTML = '<p class="error">✗ 没有找到token</p>';
+                return;
+            }
+            
+            try {
+                resultDiv.innerHTML = '<p>正在验证token...</p>';
+                
+                const response = await fetch('http://localhost:8081/api/users/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                console.log('验证响应:', data);
+                
+                if (response.ok && data.code === 200) {
+                    resultDiv.innerHTML = `
+                        <p class="success">✓ Token有效！</p>
+                        <pre>${JSON.stringify(data.data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <p class="error">✗ Token无效或已过期</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                console.error('验证错误:', error);
+                resultDiv.innerHTML = `<p class="error">✗ 验证错误: ${error.message}</p>`;
+            }
+        }
+
+        function clearStorage() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('userInfo');
+            
+            document.getElementById('clearResult').innerHTML = '<p class="success">✓ 已清除所有登录信息</p>';
+            
+            // 同时更新检查结果
+            checkLocalStorage();
+        }
+
+        // 页面加载时自动检查
+        window.onload = function() {
+            checkLocalStorage();
+        };
+    </script>
+</body>
+</html>

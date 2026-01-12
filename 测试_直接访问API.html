@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>直接测试 API</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #f5f5f5; }
+        .box { background: white; padding: 20px; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        h2 { color: #a0182f; }
+        pre { background: #f5f5f5; padding: 15px; border-radius: 6px; overflow-x: auto; }
+        .success { color: #52c41a; font-weight: bold; }
+        .error { color: #f5222d; font-weight: bold; }
+        button { background: #a0182f; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin: 5px; }
+        button:hover { background: #8b1538; }
+    </style>
+</head>
+<body>
+    <h1>🔍 API 测试工具</h1>
+    
+    <div class="box">
+        <h2>测试 1: 直接访问创意服务 API</h2>
+        <button onclick="testCreativeAPI()">测试创意服务</button>
+        <div id="result1"></div>
+    </div>
+
+    <div class="box">
+        <h2>测试 2: 检查 CORS 响应头</h2>
+        <button onclick="testCORS()">检查 CORS</button>
+        <div id="result2"></div>
+    </div>
+
+    <div class="box">
+        <h2>测试 3: 模拟前端请求</h2>
+        <button onclick="testFrontendRequest()">模拟前端</button>
+        <div id="result3"></div>
+    </div>
+
+    <script>
+        async function testCreativeAPI() {
+            const div = document.getElementById('result1');
+            div.innerHTML = '<p>⏳ 测试中...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:8087/api/creative/designs/top?limit=100');
+                const data = await response.json();
+                
+                div.innerHTML = `
+                    <p class="success">✅ API 响应成功</p>
+                    <p>状态码: ${response.status}</p>
+                    <p>作品数量: ${data.data ? data.data.length : 0}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                div.innerHTML = `
+                    <p class="error">❌ 请求失败</p>
+                    <p>错误: ${error.message}</p>
+                `;
+            }
+        }
+
+        async function testCORS() {
+            const div = document.getElementById('result2');
+            div.innerHTML = '<p>⏳ 检查中...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:8087/api/creative/designs/top?limit=1');
+                
+                const corsHeaders = {
+                    'Access-Control-Allow-Origin': response.headers.get('Access-Control-Allow-Origin'),
+                    'Access-Control-Allow-Methods': response.headers.get('Access-Control-Allow-Methods'),
+                    'Access-Control-Allow-Headers': response.headers.get('Access-Control-Allow-Headers'),
+                    'Access-Control-Allow-Credentials': response.headers.get('Access-Control-Allow-Credentials')
+                };
+                
+                div.innerHTML = `
+                    <p class="success">✅ CORS 响应头</p>
+                    <pre>${JSON.stringify(corsHeaders, null, 2)}</pre>
+                    ${corsHeaders['Access-Control-Allow-Origin'] ? 
+                        '<p class="success">✅ CORS 已配置</p>' : 
+                        '<p class="error">❌ CORS 未配置</p>'}
+                `;
+            } catch (error) {
+                div.innerHTML = `
+                    <p class="error">❌ 检查失败</p>
+                    <p>错误: ${error.message}</p>
+                `;
+            }
+        }
+
+        async function testFrontendRequest() {
+            const div = document.getElementById('result3');
+            div.innerHTML = '<p>⏳ 测试中...</p>';
+            
+            try {
+                // 模拟前端的请求方式
+                const response = await fetch('http://localhost:8087/api/creative/designs/top?limit=100', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                div.innerHTML = `
+                    <p class="success">✅ 前端请求成功</p>
+                    <p>状态码: ${response.status}</p>
+                    <p>作品数量: ${data.data ? data.data.length : 0}</p>
+                    <p>第一个作品: ${data.data && data.data[0] ? data.data[0].title : '无'}</p>
+                `;
+            } catch (error) {
+                div.innerHTML = `
+                    <p class="error">❌ 前端请求失败</p>
+                    <p>错误: ${error.message}</p>
+                    <p>这可能是 CORS 问题</p>
+                `;
+            }
+        }
+
+        // 页面加载时自动测试
+        window.onload = () => {
+            console.log('页面加载完成');
+            testCreativeAPI();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试创意视频播放</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #a0182f;
+            border-bottom: 3px solid #a0182f;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        .test-section h2 {
+            color: #333;
+            margin-top: 0;
+        }
+        video {
+            width: 100%;
+            max-width: 800px;
+            background: #000;
+            border-radius: 8px;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-left: 4px solid #2196f3;
+            margin: 20px 0;
+        }
+        .success {
+            background: #e8f5e9;
+            border-left-color: #4caf50;
+        }
+        .error {
+            background: #ffebee;
+            border-left-color: #f44336;
+        }
+        button {
+            background: #a0182f;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #8b1538;
+        }
+        .log {
+            background: #263238;
+            color: #aed581;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .log-item {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #4caf50;
+            padding-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 创意视频播放测试</h1>
+        
+        <div class="info">
+            <strong>测试目的：</strong>验证视频作品在详情弹窗中是否能正常播放
+        </div>
+
+        <!-- 测试1: 基础视频播放 -->
+        <div class="test-section">
+            <h2>测试 1: 基础视频播放</h2>
+            <p>使用 W3Schools 示例视频</p>
+            <video 
+                src="https://www.w3schools.com/html/mov_bbb.mp4" 
+                controls 
+                poster="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800&auto=format&fit=crop"
+                preload="metadata"
+            >
+                您的浏览器不支持视频播放
+            </video>
+            <div id="test1-log" class="log"></div>
+        </div>
+
+        <!-- 测试2: 条件渲染 -->
+        <div class="test-section">
+            <h2>测试 2: 条件渲染（模拟 Vue）</h2>
+            <p>当前作品类型: <span id="work-type">video</span></p>
+            <button onclick="toggleWorkType()">切换作品类型</button>
+            <div id="media-container" style="margin-top: 20px;"></div>
+            <div id="test2-log" class="log"></div>
+        </div>
+
+        <!-- 测试3: 动态URL -->
+        <div class="test-section">
+            <h2>测试 3: 动态视频URL</h2>
+            <button onclick="loadVideo1()">加载视频 1</button>
+            <button onclick="loadVideo2()">加载视频 2</button>
+            <button onclick="loadImage()">加载图片</button>
+            <div id="dynamic-media" style="margin-top: 20px;"></div>
+            <div id="test3-log" class="log"></div>
+        </div>
+
+        <!-- 测试结果 -->
+        <div class="test-section">
+            <h2>📊 测试结果</h2>
+            <div id="results"></div>
+        </div>
+    </div>
+
+    <script>
+        // 日志函数
+        function log(containerId, message, type = 'info') {
+            const container = document.getElementById(containerId);
+            const logItem = document.createElement('div');
+            logItem.className = 'log-item';
+            logItem.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            container.appendChild(logItem);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // 测试1: 监听视频事件
+        const video1 = document.querySelector('#test1-log').previousElementSibling;
+        video1.addEventListener('loadstart', () => log('test1-log', '✓ 视频开始加载'));
+        video1.addEventListener('loadedmetadata', () => log('test1-log', '✓ 视频元数据已加载'));
+        video1.addEventListener('canplay', () => log('test1-log', '✓ 视频可以播放'));
+        video1.addEventListener('error', (e) => log('test1-log', '✗ 视频加载错误: ' + e.message));
+
+        // 测试2: 条件渲染
+        let isVideo = true;
+        function toggleWorkType() {
+            isVideo = !isVideo;
+            const workType = document.getElementById('work-type');
+            const container = document.getElementById('media-container');
+            
+            workType.textContent = isVideo ? 'video' : 'image';
+            log('test2-log', `切换到: ${isVideo ? '视频' : '图片'}`);
+            
+            if (isVideo) {
+                container.innerHTML = `
+                    <video 
+                        src="https://www.w3schools.com/html/mov_bbb.mp4" 
+                        controls 
+                        style="width: 100%; max-width: 800px; background: #000; border-radius: 8px;"
+                    >
+                        您的浏览器不支持视频播放
+                    </video>
+                `;
+                log('test2-log', '✓ 视频元素已创建');
+            } else {
+                container.innerHTML = `
+                    <img 
+                        src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800&auto=format&fit=crop" 
+                        style="width: 100%; max-width: 800px; border-radius: 8px;"
+                    />
+                `;
+                log('test2-log', '✓ 图片元素已创建');
+            }
+        }
+        // 初始化
+        toggleWorkType();
+
+        // 测试3: 动态URL
+        function loadVideo1() {
+            const container = document.getElementById('dynamic-media');
+            container.innerHTML = `
+                <video 
+                    src="https://www.w3schools.com/html/mov_bbb.mp4" 
+                    controls 
+                    style="width: 100%; max-width: 800px; background: #000; border-radius: 8px;"
+                    poster="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800&auto=format&fit=crop"
+                >
+                    您的浏览器不支持视频播放
+                </video>
+            `;
+            log('test3-log', '✓ 加载视频 1');
+        }
+
+        function loadVideo2() {
+            const container = document.getElementById('dynamic-media');
+            container.innerHTML = `
+                <video 
+                    src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" 
+                    controls 
+                    style="width: 100%; max-width: 800px; background: #000; border-radius: 8px;"
+                >
+                    您的浏览器不支持视频播放
+                </video>
+            `;
+            log('test3-log', '✓ 加载视频 2');
+        }
+
+        function loadImage() {
+            const container = document.getElementById('dynamic-media');
+            container.innerHTML = `
+                <img 
+                    src="https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?w=800&auto=format&fit=crop" 
+                    style="width: 100%; max-width: 800px; border-radius: 8px;"
+                />
+            `;
+            log('test3-log', '✓ 加载图片');
+        }
+
+        // 显示测试结果
+        setTimeout(() => {
+            const results = document.getElementById('results');
+            results.innerHTML = `
+                <div class="info success">
+                    <strong>✓ 测试完成</strong><br>
+                    如果上面的视频都能正常播放，说明浏览器支持视频播放。<br>
+                    如果在 Vue 应用中无法播放，请检查：<br>
+                    1. isVideoWork() 函数是否正确判断<br>
+                    2. getVideoUrl() 函数是否返回正确的URL<br>
+                    3. 控制台是否有错误信息<br>
+                    4. 视频URL是否可访问
+                </div>
+            `;
+        }, 1000);
+    </script>
+</body>
+</html>

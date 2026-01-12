@@ -1,0 +1,39 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: creative-service
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/jiyi_creative?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: root
+    password: root
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 6
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+        enabled: false
+    compatibility-verifier:
+      enabled: false
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+      # 全局插入策略：NOT_NULL 表示只插入非 NULL 的字段
+      insert-strategy: not_null
+      # 全局更新策略：NOT_NULL 表示只更新非 NULL 的字段
+      update-strategy: not_null
+  mapper-locations: classpath*:/mapper/**/*.xml

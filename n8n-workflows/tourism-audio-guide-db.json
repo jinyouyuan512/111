@@ -1,0 +1,58 @@
+{
+  "name": "智慧旅游-语音讲解",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/audio-guide",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b1c2d3e4-1111-2222-3333-444455556666",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json.body || {};\nconst spotName = input.spotName || '';\nconst spotId = input.spotId;\n\n// 语音讲解数据\nconst audioGuides = {\n  '西柏坡': {\n    intro: '欢迎来到西柏坡纪念馆，这里被誉为新中国从这里走来。',\n    chapters: [\n      { id: 1, title: '西柏坡概述', content: '西柏坡位于河北省石家庄市平山县，是解放战争时期中央工委、中共中央和解放军总部的所在地。1948年5月至1949年3月，中共中央在这里指挥了辽沈、淮海、平津三大战役，召开了具有伟大历史意义的七届二中全会。', duration: 180 },\n      { id: 2, title: '七届二中全会', content: '1949年3月5日至13日，中国共产党第七届中央委员会第二次全体会议在西柏坡召开。毛泽东同志在会上提出了著名的两个务必论断：务必使同志们继续地保持谦虚、谨慎、不骄、不躁的作风，务必使同志们继续地保持艰苦奋斗的作风。', duration: 240 },\n      { id: 3, title: '毛泽东旧居', content: '这里是毛泽东同志在西柏坡时期的住所和办公地点。在这间简陋的土坯房里，毛泽东同志运筹帷幄，指挥了三大战役，为新中国的诞生奠定了基础。', duration: 200 }\n    ]\n  },\n  '狼牙山': {\n    intro: '欢迎来到狼牙山五壮士纪念地，这里记录着抗日战争中最悲壮的英雄事迹。',\n    chapters: [\n      { id: 1, title: '狼牙山简介', content: '狼牙山位于河北省保定市易县，因奇峰林立状若狼牙而得名。这里不仅风景秀丽，更因狼牙山五壮士的英雄事迹而闻名全国。', duration: 150 },\n      { id: 2, title: '五壮士事迹', content: '1941年9月25日，八路军晋察冀军区第一军分区一团七连六班的五名战士，为掩护群众和主力部队转移，在狼牙山顶峰与敌人激战后跳崖，三人壮烈牺牲，两人被树枝挂住幸存。他们是马宝玉、葛振林、宋学义、胡德林、胡福才。', duration: 300 }\n    ]\n  },\n  '白洋淀': {\n    intro: '欢迎来到白洋淀雁翎队纪念馆，这里讲述着华北明珠上的抗战传奇。',\n    chapters: [\n      { id: 1, title: '白洋淀概述', content: '白洋淀是华北平原上最大的淡水湖泊，素有华北明珠之称。抗日战争时期，这里诞生了神出鬼没的水上游击队——雁翎队。', duration: 160 },\n      { id: 2, title: '雁翎队故事', content: '雁翎队成立于1939年，因队员在枪上插雁翎作标志而得名。他们利用白洋淀的芦苇荡和水道，神出鬼没地打击日本侵略者，被誉为淀上神兵。', duration: 220 }\n    ]\n  },\n  '塞罕坝': {\n    intro: '欢迎来到塞罕坝展览馆，这里展示着荒原变林海的绿色奇迹。',\n    chapters: [\n      { id: 1, title: '塞罕坝精神', content: '塞罕坝，蒙古语意为美丽的高岭。1962年，369名创业者来到这片荒原，开始了艰苦卓绝的造林事业。三代人用55年时间，将荒原变成了百万亩林海。', duration: 180 },\n      { id: 2, title: '生态文明', content: '塞罕坝林场是世界上面积最大的人工林场，每年为京津地区涵养水源、净化空气，成为首都的绿色屏障。塞罕坝精神已成为生态文明建设的典范。', duration: 200 }\n    ]\n  },\n  '李大钊': {\n    intro: '欢迎来到李大钊纪念馆，这里纪念着中国共产主义运动的先驱。',\n    chapters: [\n      { id: 1, title: '李大钊生平', content: '李大钊，字守常，河北乐亭人，中国共产党的主要创始人之一。他是最早在中国传播马克思主义的先驱者，为中国革命事业献出了宝贵的生命。', duration: 200 },\n      { id: 2, title: '革命精神', content: '铁肩担道义，妙手著文章。李大钊同志以笔为武器，唤醒民众，为中国革命指明了方向。他的革命精神永远激励着后人。', duration: 180 }\n    ]\n  },\n  '冉庄': {\n    intro: '欢迎来到冉庄地道战遗址，这里展示着人民战争的伟大创举。',\n    chapters: [\n      { id: 1, title: '地道战简介', content: '冉庄地道战遗址是抗日战争时期冀中平原人民创造的地道战典型代表。抗战时期，冉庄人民挖掘了长达16公里的地道网，有力打击了日本侵略者。', duration: 170 },\n      { id: 2, title: '地道结构', content: '冉庄地道设计精巧，有作战地道、生活地道、联络地道等，还设有陷阱、射击孔、通风口等设施，是人民智慧的结晶。', duration: 190 }\n    ]\n  }\n};\n\n// 匹配景点\nlet guide = null;\nlet matchedName = '';\nfor (const key of Object.keys(audioGuides)) {\n  if (spotName.includes(key) || (spotId && spotId.toString() === key)) {\n    guide = audioGuides[key];\n    matchedName = key;\n    break;\n  }\n}\n\nif (!guide) {\n  guide = {\n    intro: `欢迎来到${spotName || '红色景点'}`,\n    chapters: [\n      { id: 1, title: '景点概述', content: '这是一处具有重要历史意义的红色景点，承载着革命先辈的光辉事迹。', duration: 180 },\n      { id: 2, title: '历史故事', content: '在这里发生过许多感人的革命故事，让我们一起来了解和缅怀。', duration: 150 }\n    ]\n  };\n}\n\nconst totalDuration = guide.chapters.reduce((sum, ch) => sum + ch.duration, 0);\n\nreturn [{\n  json: {\n    success: true,\n    spotName: spotName || matchedName,\n    guide: {\n      intro: guide.intro,\n      chapters: guide.chapters,\n      totalDuration: totalDuration,\n      totalChapters: guide.chapters.length\n    }\n  }\n}];"
+      },
+      "id": "b1c2d3e4-2222-3333-4444-555566667777",
+      "name": "生成语音讲解",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      },
+      "id": "b1c2d3e4-3333-4444-5555-666677778888",
+      "name": "响应",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [650, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "生成语音讲解", "type": "main", "index": 0 }]] },
+    "生成语音讲解": { "main": [[{ "node": "响应", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { 
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "instanceId": "local"
+  }
+}

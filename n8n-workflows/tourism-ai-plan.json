@@ -1,0 +1,103 @@
+{
+  "name": "智慧旅游 - AI行程规划",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/ai-plan",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook 触发器",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "messages": {
+          "values": [
+            {
+              "content": "你是一个专业的河北红色旅游行程规划师。请根据用户选择的景点，生成详细的旅游行程规划。\n\n用户选择的景点：{{ $json.spots.join('、') }}\n出发日期：{{ $json.startDate || '近期' }}\n行程天数：{{ $json.duration || 1 }}天\n行程节奏：{{ $json.preferences?.pace || 'moderate' }}\n\n请返回JSON格式的行程规划，包含：\n1. title: 行程标题\n2. description: 行程描述\n3. days: 每日行程数组，每天包含 day, date, spots(景点数组，每个景点有name, duration, tips, order), meals, accommodation\n4. totalDistance: 总距离(km)\n5. estimatedCost: 预估费用(元)\n6. tips: 出行贴士数组"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "openai-node",
+      "name": "OpenAI 生成行程",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1,
+      "position": [500, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "your-openai-credential-id",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// 解析 AI 返回的 JSON\nconst aiResponse = $input.first().json;\nlet plan;\n\ntry {\n  // 尝试从 AI 响应中提取 JSON\n  const content = aiResponse.message?.content || aiResponse.text || '';\n  const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    plan = JSON.parse(jsonMatch[0]);\n  } else {\n    throw new Error('No JSON found');\n  }\n} catch (e) {\n  // 降级方案：生成默认行程\n  const spots = $('Webhook 触发器').first().json.spots || [];\n  plan = {\n    title: `${spots[0] || '红色'}之旅`,\n    description: '精心规划的河北红色文化之旅',\n    days: [{\n      day: 1,\n      date: new Date().toISOString().split('T')[0],\n      spots: spots.map((name, idx) => ({\n        name,\n        duration: '2小时',\n        tips: '建议提前预约',\n        order: idx + 1\n      })),\n      meals: ['午餐：当地特色'],\n      accommodation: null\n    }],\n    totalDistance: spots.length * 15,\n    estimatedCost: spots.length * 100,\n    tips: ['携带身份证', '穿舒适的鞋子', '注意防晒']\n  };\n}\n\nreturn {\n  success: true,\n  plan\n};"
+      },
+      "id": "parse-response",
+      "name": "解析AI响应",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond-node",
+      "name": "返回响应",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1000, 300]
+    }
+  ],
+  "connections": {
+    "Webhook 触发器": {
+      "main": [
+        [
+          {
+            "node": "OpenAI 生成行程",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI 生成行程": {
+      "main": [
+        [
+          {
+            "node": "解析AI响应",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "解析AI响应": {
+      "main": [
+        [
+          {
+            "node": "返回响应",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

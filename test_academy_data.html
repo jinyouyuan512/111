@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>传承学院数据测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background: #e8f5e9; border-color: #4caf50; }
+        .error { background: #ffebee; border-color: #f44336; }
+        .info { background: #e3f2fd; border-color: #2196f3; }
+        h2 { margin-top: 0; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; max-height: 300px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        .btn-primary { background: #c41e3a; color: white; border: none; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🎓 传承学院数据测试</h1>
+    
+    <div class="section info">
+        <h2>📋 测试说明</h2>
+        <p>数据获取优先级：<strong>n8n工作流</strong> → <strong>后端API</strong> → <strong>本地模拟数据</strong></p>
+        <p>当前状态：</p>
+        <ul>
+            <li>n8n 服务：<span id="n8n-status">检测中...</span></li>
+            <li>后端 Academy API：<span id="backend-status">检测中...</span></li>
+            <li>前端服务：<a href="http://localhost:3001/academy" target="_blank">http://localhost:3001/academy</a></li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>🔧 测试操作</h2>
+        <button class="btn-primary" onclick="testN8nNews()">测试 n8n 新闻接口</button>
+        <button class="btn-primary" onclick="testN8nBooks()">测试 n8n 书籍接口</button>
+        <button class="btn-primary" onclick="testBackendNews()">测试后端新闻API</button>
+        <button class="btn-primary" onclick="testBackendBooks()">测试后端书籍API</button>
+        <button onclick="openAcademyPage()">打开传承学院页面</button>
+    </div>
+
+    <div id="n8n-news-result" class="section" style="display:none;">
+        <h2>📰 n8n 新闻数据</h2>
+        <pre id="n8n-news-data"></pre>
+    </div>
+
+    <div id="n8n-books-result" class="section" style="display:none;">
+        <h2>📖 n8n 书籍数据</h2>
+        <pre id="n8n-books-data"></pre>
+    </div>
+
+    <div id="backend-news-result" class="section" style="display:none;">
+        <h2>📰 后端新闻数据</h2>
+        <pre id="backend-news-data"></pre>
+    </div>
+
+    <div id="backend-books-result" class="section" style="display:none;">
+        <h2>📖 后端书籍数据</h2>
+        <pre id="backend-books-data"></pre>
+    </div>
+
+    <script>
+        const N8N_BASE = 'http://localhost:5678';
+        const BACKEND_BASE = 'http://localhost:8086';
+
+        // 检测服务状态
+        async function checkServices() {
+            // 检测 n8n
+            try {
+                const res = await fetch(`${N8N_BASE}/webhook/academy/news`, { method: 'GET' });
+                document.getElementById('n8n-status').innerHTML = res.ok ? 
+                    '<span style="color:green">✅ 运行中</span>' : 
+                    '<span style="color:orange">⚠️ 响应异常</span>';
+            } catch (e) {
+                document.getElementById('n8n-status').innerHTML = '<span style="color:red">❌ 未启动</span>';
+            }
+
+            // 检测后端
+            try {
+                const res = await fetch(`${BACKEND_BASE}/academy/news`, { method: 'GET' });
+                document.getElementById('backend-status').innerHTML = res.ok ? 
+                    '<span style="color:green">✅ 运行中</span>' : 
+                    '<span style="color:orange">⚠️ 响应异常</span>';
+            } catch (e) {
+                document.getElementById('backend-status').innerHTML = '<span style="color:red">❌ 未启动</span>';
+            }
+        }
+
+        async function testN8nNews() {
+            const resultDiv = document.getElementById('n8n-news-result');
+            const dataDiv = document.getElementById('n8n-news-data');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'section';
+            
+            try {
+                const res = await fetch(`${N8N_BASE}/webhook/academy/news`);
+                const data = await res.json();
+                dataDiv.textContent = JSON.stringify(data, null, 2);
+                resultDiv.classList.add('success');
+            } catch (e) {
+                dataDiv.textContent = '错误: ' + e.message + '\n\nn8n 服务未启动，请运行: npx n8n start';
+                resultDiv.classList.add('error');
+            }
+        }
+
+        async function testN8nBooks() {
+            const resultDiv = document.getElementById('n8n-books-result');
+            const dataDiv = document.getElementById('n8n-books-data');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'section';
+            
+            try {
+                const res = await fetch(`${N8N_BASE}/webhook/academy/books`);
+                const data = await res.json();
+                dataDiv.textContent = JSON.stringify(data, null, 2);
+                resultDiv.classList.add('success');
+            } catch (e) {
+                dataDiv.textContent = '错误: ' + e.message + '\n\nn8n 服务未启动，请运行: npx n8n start';
+                resultDiv.classList.add('error');
+            }
+        }
+
+        async function testBackendNews() {
+            const resultDiv = document.getElementById('backend-news-result');
+            const dataDiv = document.getElementById('backend-news-data');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'section';
+            
+            try {
+                const res = await fetch(`${BACKEND_BASE}/academy/news`);
+                const data = await res.json();
+                dataDiv.textContent = JSON.stringify(data, null, 2);
+                resultDiv.classList.add('success');
+            } catch (e) {
+                dataDiv.textContent = '错误: ' + e.message + '\n\nacademy-service 未启动';
+                resultDiv.classList.add('error');
+            }
+        }
+
+        async function testBackendBooks() {
+            const resultDiv = document.getElementById('backend-books-result');
+            const dataDiv = document.getElementById('backend-books-data');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'section';
+            
+            try {
+                const res = await fetch(`${BACKEND_BASE}/academy/books`);
+                const data = await res.json();
+                dataDiv.textContent = JSON.stringify(data, null, 2);
+                resultDiv.classList.add('success');
+            } catch (e) {
+                dataDiv.textContent = '错误: ' + e.message + '\n\nacademy-service 未启动';
+                resultDiv.classList.add('error');
+            }
+        }
+
+        function openAcademyPage() {
+            window.open('http://localhost:3001/academy', '_blank');
+        }
+
+        // 页面加载时检测服务
+        checkServices();
+    </script>
+</body>
+</html>

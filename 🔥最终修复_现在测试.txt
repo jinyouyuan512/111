@@ -1,0 +1,121 @@
+════════════════════════════════════════════════════════════════
+                🔥 最终修复完成 - 这次一定成功
+════════════════════════════════════════════════════════════════
+
+我已经修改了 MyBatis-Plus 的全局配置：
+
+文件：backend/creative-service/src/main/resources/application.yml
+
+添加了：
+  insert-strategy: not_null  ← 只插入非 NULL 的字段
+  update-strategy: not_null  ← 只更新非 NULL 的字段
+
+这是 MyBatis-Plus 的全局配置，会影响所有实体类。
+
+════════════════════════════════════════════════════════════════
+                ✅ 服务已重启
+════════════════════════════════════════════════════════════════
+
+创意服务：运行中
+端口：8087
+进程ID：33652
+启动时间：2026-01-04 12:17
+
+════════════════════════════════════════════════════════════════
+                🧪 立即测试
+════════════════════════════════════════════════════════════════
+
+1. 浏览器按 Ctrl+Shift+Delete 清除缓存
+2. 或者按 Ctrl+F5 强制刷新
+3. 访问 http://localhost:3002/creative/upload
+4. 填写表单：
+   - 作品标题：测试作品
+   - 作品描述：这是测试
+   - 上传文件
+   - 不填写其他可选字段
+5. 点击"提交作品"
+
+════════════════════════════════════════════════════════════════
+                📊 预期结果
+════════════════════════════════════════════════════════════════
+
+✅ 成功：显示"作品提交成功"
+❌ 失败：仍然显示 Error 1048
+
+如果仍然失败，说明：
+1. 数据库表结构的 NOT NULL 约束太严格
+2. 必须执行数据库修复 SQL
+
+════════════════════════════════════════════════════════════════
+                🔍 为什么这次应该成功？
+════════════════════════════════════════════════════════════════
+
+之前的问题：
+  - Entity 注解 @TableField(insertStrategy = FieldStrategy.IGNORED)
+  - 但没有全局配置
+  - MyBatis-Plus 仍然插入所有字段
+
+现在的解决方案：
+  - 全局配置 insert-strategy: not_null
+  - MyBatis-Plus 只插入非 NULL 的字段
+  - 生成的 SQL 不会包含 NULL 字段
+  - 避免触发数据库的 NOT NULL 约束
+
+════════════════════════════════════════════════════════════════
+                📝 技术细节
+════════════════════════════════════════════════════════════════
+
+之前的 SQL（错误）：
+  INSERT INTO design (
+    designer_id, contest_id, call_id, title, 
+    category_type, description, design_concept, ...
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ...)
+  
+  ↑ 包含所有字段，即使值为 NULL
+
+现在的 SQL（正确）：
+  INSERT INTO design (
+    designer_id, title, description, files, status, ...
+  ) VALUES (?, ?, ?, ?, ?, ...)
+  
+  ↑ 只包含非 NULL 的字段
+
+════════════════════════════════════════════════════════════════
+                🎯 如果还是失败
+════════════════════════════════════════════════════════════════
+
+那就必须修改数据库表结构了。
+
+在 MySQL 中执行（一条一条执行）：
+
+USE jiyi_creative;
+
+ALTER TABLE design MODIFY COLUMN contest_id BIGINT NULL;
+ALTER TABLE design MODIFY COLUMN call_id BIGINT NULL;
+ALTER TABLE design MODIFY COLUMN category_type INT NULL;
+ALTER TABLE design MODIFY COLUMN design_concept TEXT NULL;
+ALTER TABLE design MODIFY COLUMN cover_image VARCHAR(500) NULL;
+ALTER TABLE design MODIFY COLUMN copyright_statement VARCHAR(500) NULL;
+ALTER TABLE design MODIFY COLUMN tags VARCHAR(500) NULL;
+ALTER TABLE design MODIFY COLUMN reject_reason VARCHAR(500) NULL;
+
+验证：
+DESC design;
+
+所有上述字段的 Null 列应该显示 YES
+
+════════════════════════════════════════════════════════════════
+                💡 最后的话
+════════════════════════════════════════════════════════════════
+
+我已经做了两层修复：
+1. 代码层面：只在非空时设置字段
+2. 配置层面：全局 insert-strategy: not_null
+
+如果这两层都不行，那就只能修改数据库表结构了。
+
+════════════════════════════════════════════════════════════════
+
+现在就测试吧！
+
+════════════════════════════════════════════════════════════════

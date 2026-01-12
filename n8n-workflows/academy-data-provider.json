@@ -1,0 +1,102 @@
+{
+  "name": "传承学院数据提供工作流",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "academy/news",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "webhook-news",
+      "name": "获取新闻列表",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 200]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "academy/books",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "webhook-books",
+      "name": "获取书籍列表",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 河北红色新闻数据\nconst newsData = [\n  {\n    id: 1,\n    title: '西柏坡纪念馆举办\"新中国从这里走来\"主题展览',\n    summary: '展览全面展示了中共中央在西柏坡的光辉历程，通过珍贵文物、历史照片和多媒体展示，生动再现了那段波澜壮阔的革命岁月。',\n    category: '纪念活动',\n    source: '河北日报',\n    author: '张明',\n    viewCount: 125800,\n    likeCount: 8560,\n    isTop: true,\n    isHot: true,\n    publishTime: new Date().toISOString(),\n    externalUrl: 'https://hebei.hebnews.cn/node_50.htm'\n  },\n  {\n    id: 2,\n    title: '河北省开展\"传承红色基因\"主题教育活动',\n    summary: '全省各地积极组织党员干部深入红色教育基地，接受革命传统教育，推动党史学习教育走深走实。',\n    category: '教育实践',\n    source: '河北新闻网',\n    author: '李华',\n    viewCount: 89200,\n    likeCount: 5620,\n    isTop: false,\n    isHot: true,\n    publishTime: new Date(Date.now() - 86400000).toISOString(),\n    externalUrl: 'https://www.hebnews.cn/'\n  },\n  {\n    id: 3,\n    title: '狼牙山五壮士纪念地迎来参观高峰',\n    summary: '清明节期间，大批群众前往狼牙山缅怀革命先烈，传承英雄精神，接受爱国主义教育。',\n    category: '红色故事',\n    source: '燕赵都市报',\n    author: '王强',\n    viewCount: 67500,\n    likeCount: 4230,\n    isTop: false,\n    isHot: false,\n    publishTime: new Date(Date.now() - 172800000).toISOString(),\n    externalUrl: 'https://yzdsb.hebnews.cn/'\n  },\n  {\n    id: 4,\n    title: '河北省委召开党史学习教育推进会',\n    summary: '会议强调要深入学习贯彻习近平总书记重要讲话精神，推动党史学习教育走深走实。',\n    category: '党建动态',\n    source: '河北日报',\n    author: '赵刚',\n    viewCount: 156800,\n    likeCount: 9870,\n    isTop: false,\n    isHot: true,\n    publishTime: new Date(Date.now() - 259200000).toISOString(),\n    externalUrl: 'https://hebei.hebnews.cn/node_50.htm'\n  },\n  {\n    id: 5,\n    title: '白洋淀雁翎队纪念馆完成升级改造',\n    summary: '改造后的纪念馆运用现代科技手段，生动再现雁翎队抗日斗争历史，成为雄安新区重要的红色教育基地。',\n    category: '纪念活动',\n    source: '长城网',\n    author: '刘芳',\n    viewCount: 43200,\n    likeCount: 2890,\n    isTop: false,\n    isHot: false,\n    publishTime: new Date(Date.now() - 345600000).toISOString(),\n    externalUrl: 'https://www.hebnews.cn/xiongan/'\n  },\n  {\n    id: 6,\n    title: '塞罕坝精神宣讲团走进高校',\n    summary: '宣讲团成员讲述三代务林人艰苦奋斗的感人故事，激励青年学子传承塞罕坝精神。',\n    category: '教育实践',\n    source: '河北新闻网',\n    author: '陈静',\n    viewCount: 78900,\n    likeCount: 5120,\n    isTop: false,\n    isHot: false,\n    publishTime: new Date(Date.now() - 432000000).toISOString(),\n    externalUrl: 'https://www.hebnews.cn/'\n  },\n  {\n    id: 7,\n    title: '李大钊故居纪念馆举办专题展览',\n    summary: '展览以\"播火者\"为主题，全面展示李大钊同志传播马克思主义、创建中国共产党的光辉历程。',\n    category: '红色故事',\n    source: '唐山晚报',\n    author: '周明',\n    viewCount: 52300,\n    likeCount: 3450,\n    isTop: false,\n    isHot: false,\n    publishTime: new Date(Date.now() - 518400000).toISOString(),\n    externalUrl: 'https://www.tswb.com.cn/'\n  },\n  {\n    id: 8,\n    title: '董存瑞烈士陵园举行公祭活动',\n    summary: '社会各界代表齐聚董存瑞烈士陵园，缅怀革命先烈，传承英雄精神。',\n    category: '纪念活动',\n    source: '承德日报',\n    author: '孙伟',\n    viewCount: 68700,\n    likeCount: 4560,\n    isTop: false,\n    isHot: true,\n    publishTime: new Date(Date.now() - 604800000).toISOString(),\n    externalUrl: 'https://www.cdnews.cn/'\n  }\n];\n\n// 获取查询参数\nconst category = $input.first().json.query?.category;\n\n// 过滤数据\nlet filteredNews = newsData;\nif (category && category !== 'all') {\n  filteredNews = newsData.filter(n => n.category === category);\n}\n\nreturn [{ json: { success: true, news: filteredNews, total: filteredNews.length } }];"
+      },
+      "id": "code-news",
+      "name": "生成新闻数据",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 河北红色读物数据\nconst booksData = [\n  {\n    id: 1,\n    title: '西柏坡：新中国从这里走来',\n    author: '中共河北省委党史研究室',\n    publisher: '河北人民出版社',\n    description: '本书全面记录了中共中央在西柏坡的光辉历程，深入解读了西柏坡精神的科学内涵和时代价值。',\n    category: '党史著作',\n    rating: 4.9,\n    ratingCount: 2580,\n    readCount: 125800,\n    isRecommended: true,\n    hasEbook: true,\n    tags: '西柏坡,党史,必读,新中国',\n    externalUrl: 'https://search.jd.com/Search?keyword=西柏坡新中国从这里走来'\n  },\n  {\n    id: 2,\n    title: '狼牙山五壮士',\n    author: '沈重',\n    publisher: '人民文学出版社',\n    description: '本书讲述了1941年狼牙山战斗中，五位八路军战士为掩护群众和主力撤退，在弹尽粮绝后跳崖的壮烈故事。',\n    category: '纪实文学',\n    rating: 4.8,\n    ratingCount: 3650,\n    readCount: 98500,\n    isRecommended: true,\n    hasEbook: true,\n    tags: '抗战,英雄,经典,狼牙山',\n    externalUrl: 'https://search.jd.com/Search?keyword=狼牙山五壮士'\n  },\n  {\n    id: 3,\n    title: '李大钊传',\n    author: '朱志敏',\n    publisher: '红旗出版社',\n    description: '本书全面记述了中国共产主义运动先驱李大钊的革命生涯，展现了他为传播马克思主义、创建中国共产党所作出的卓越贡献。',\n    category: '人物传记',\n    rating: 4.7,\n    ratingCount: 1890,\n    readCount: 67200,\n    isRecommended: true,\n    hasEbook: true,\n    tags: '李大钊,先驱,传记,马克思主义',\n    externalUrl: 'https://search.jd.com/Search?keyword=李大钊传'\n  },\n  {\n    id: 4,\n    title: '塞罕坝精神',\n    author: '河北省林业厅',\n    publisher: '中国林业出版社',\n    description: '本书记录了三代塞罕坝人艰苦创业、绿色发展的感人事迹，深刻诠释了塞罕坝精神。',\n    category: '纪实文学',\n    rating: 4.8,\n    ratingCount: 2120,\n    readCount: 85600,\n    isRecommended: true,\n    hasEbook: true,\n    tags: '塞罕坝,生态,奋斗,绿色发展',\n    externalUrl: 'https://search.jd.com/Search?keyword=塞罕坝精神'\n  },\n  {\n    id: 5,\n    title: '白洋淀纪事',\n    author: '孙犁',\n    publisher: '人民文学出版社',\n    description: '孙犁代表作，以白洋淀为背景，描绘了抗日战争时期冀中人民的斗争生活。',\n    category: '红色经典',\n    rating: 4.9,\n    ratingCount: 5680,\n    readCount: 156800,\n    isRecommended: true,\n    hasEbook: true,\n    tags: '白洋淀,孙犁,文学经典,抗战',\n    externalUrl: 'https://search.jd.com/Search?keyword=白洋淀纪事孙犁'\n  },\n  {\n    id: 6,\n    title: '晋察冀边区革命史',\n    author: '中共河北省委党史研究室',\n    publisher: '中共党史出版社',\n    description: '本书系统介绍了晋察冀抗日根据地的创建、发展和历史贡献。',\n    category: '党史著作',\n    rating: 4.6,\n    ratingCount: 980,\n    readCount: 32500,\n    isRecommended: false,\n    hasEbook: true,\n    tags: '晋察冀,根据地,抗战,边区',\n    externalUrl: 'https://search.jd.com/Search?keyword=晋察冀边区革命史'\n  },\n  {\n    id: 7,\n    title: '红色少年读本：河北英雄故事',\n    author: '河北省教育厅',\n    publisher: '河北少年儿童出版社',\n    description: '精选河北革命英雄故事，向青少年讲述革命先辈的英勇事迹。',\n    category: '青少年读物',\n    rating: 4.7,\n    ratingCount: 1560,\n    readCount: 78900,\n    isRecommended: true,\n    hasEbook: true,\n    tags: '青少年,英雄故事,教育,插图',\n    externalUrl: 'https://search.jd.com/Search?keyword=河北英雄故事'\n  },\n  {\n    id: 8,\n    title: '董存瑞',\n    author: '赵寰',\n    publisher: '解放军文艺出版社',\n    description: '本书讲述了舍身炸碉堡的战斗英雄董存瑞的英勇事迹。',\n    category: '人物传记',\n    rating: 4.8,\n    ratingCount: 2890,\n    readCount: 112500,\n    isRecommended: true,\n    hasEbook: true,\n    tags: '董存瑞,英雄,解放战争,隆化',\n    externalUrl: 'https://search.jd.com/Search?keyword=董存瑞传'\n  },\n  {\n    id: 9,\n    title: '冀中一日',\n    author: '孙犁等',\n    publisher: '花山文艺出版社',\n    description: '1941年5月27日，冀中区党委组织千余名作者，记录下这一天冀中平原上发生的事情。',\n    category: '红色经典',\n    rating: 4.6,\n    ratingCount: 1230,\n    readCount: 45600,\n    isRecommended: false,\n    hasEbook: true,\n    tags: '冀中,抗战,纪实,群众',\n    externalUrl: 'https://search.jd.com/Search?keyword=冀中一日'\n  },\n  {\n    id: 10,\n    title: '雁翎队',\n    author: '穆青',\n    publisher: '河北人民出版社',\n    description: '本书讲述了抗日战争时期活跃在白洋淀地区的水上游击队——雁翎队的英勇事迹。',\n    category: '纪实文学',\n    rating: 4.7,\n    ratingCount: 1680,\n    readCount: 56700,\n    isRecommended: true,\n    hasEbook: true,\n    tags: '雁翎队,白洋淀,抗战,游击队',\n    externalUrl: 'https://search.jd.com/Search?keyword=雁翎队'\n  }\n];\n\n// 获取查询参数\nconst category = $input.first().json.query?.category;\n\n// 过滤数据\nlet filteredBooks = booksData;\nif (category && category !== 'all') {\n  filteredBooks = booksData.filter(b => b.category === category);\n}\n\nreturn [{ json: { success: true, books: filteredBooks, total: filteredBooks.length } }];"
+      },
+      "id": "code-books",
+      "name": "生成书籍数据",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "response-news",
+      "name": "返回新闻",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [750, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "response-books",
+      "name": "返回书籍",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [750, 500]
+    }
+  ],
+  "connections": {
+    "获取新闻列表": {
+      "main": [
+        [{ "node": "生成新闻数据", "type": "main", "index": 0 }]
+      ]
+    },
+    "获取书籍列表": {
+      "main": [
+        [{ "node": "生成书籍数据", "type": "main", "index": 0 }]
+      ]
+    },
+    "生成新闻数据": {
+      "main": [
+        [{ "node": "返回新闻", "type": "main", "index": 0 }]
+      ]
+    },
+    "生成书籍数据": {
+      "main": [
+        [{ "node": "返回书籍", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "name": "AI语音导览-v2",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/audio-guide",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0001-0001-0001-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "audio-guide-webhook"
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "a1b2c3d4-0001-0001-0001-000000000002",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [460, 500]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是河北红色旅游景点专业讲解员。\n\n请为【{{ $json.spotName }}】生成{{ $json.style === 'kids' ? '儿童版' : $json.style === 'story' ? '故事版' : '标准版' }}语音导览。\n\n要求：\n1. 开场白intro(50-100字)\n2. 3-4个章节chapters，每个含title、content(200字以上)、duration(秒)\n3. 内容有历史深度，语言生动\n\n严格返回JSON格式：\n{\"intro\":\"开场白\",\"chapters\":[{\"title\":\"标题\",\"content\":\"内容\",\"duration\":120}]}"
+      },
+      "id": "a1b2c3d4-0001-0001-0001-000000000003",
+      "name": "Basic LLM Chain",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Webhook').first().json;\nconst spotName = input.spotName || '未知景点';\nconst style = input.style || 'standard';\n\ntry {\n  const text = $input.first().json.text || '';\n  const match = text.match(/\\{[\\s\\S]*\\}/);\n  if (!match) throw new Error('No JSON');\n  const data = JSON.parse(match[0]);\n  const chapters = (data.chapters || []).map((c, i) => ({\n    id: i + 1, title: c.title, content: c.content,\n    duration: c.duration || 120,\n    audioUrl: `/audio/${spotName}/${i+1}.mp3`\n  }));\n  return {\n    success: true, spotName, style,\n    guide: { intro: data.intro, chapters,\n      totalDuration: chapters.reduce((s,c) => s + c.duration, 0),\n      totalChapters: chapters.length },\n    source: 'ai'\n  };\n} catch (e) {\n  return {\n    success: true, spotName, style,\n    guide: {\n      intro: '欢迎来到' + spotName,\n      chapters: [\n        {id:1, title:'景点概述', content:spotName+'是河北省重要红色文化遗址', duration:90},\n        {id:2, title:'历史背景', content:'这里见证了中国革命的重要历程', duration:120},\n        {id:3, title:'参观指南', content:'建议跟随讲解员参观，约需1-2小时', duration:90}\n      ],\n      totalDuration: 300, totalChapters: 3\n    },\n    source: 'fallback', error: e.message\n  };\n}"
+      },
+      "id": "a1b2c3d4-0001-0001-0001-000000000004",
+      "name": "解析响应",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "a1b2c3d4-0001-0001-0001-000000000005",
+      "name": "返回结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [940, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Basic LLM Chain", "type": "main", "index": 0 }]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [{ "node": "Basic LLM Chain", "type": "ai_languageModel", "index": 0 }]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [{ "node": "解析响应", "type": "main", "index": 0 }]
+      ]
+    },
+    "解析响应": {
+      "main": [
+        [{ "node": "返回结果", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "versionId": "1"
+}

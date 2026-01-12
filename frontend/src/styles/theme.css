@@ -1,0 +1,104 @@
+:root {
+  /* 红色主色调 - Red Culture Theme */
+  --color-primary: #C41E3A; /* 中国红 */
+  --color-primary-light: #E53935;
+  --color-primary-dark: #8E0000;
+  --color-accent: #FFD700; /* 荣耀金 */
+  --color-accent-light: #FFECB3;
+
+  /* 辅助色 */
+  --color-success: #2E7D32;
+  --color-warning: #ED6C02;
+  --color-info: #0288D1;
+
+  /* 背景色 */
+  --bg-color: #FAF9F6; /* 浅米色背景，类似宣纸 */
+  --bg-color-secondary: #FFFFFF;
+  --bg-dark: #2B0C0E; /* 深红色背景 */
+  --bg-overlay: rgba(196, 30, 58, 0.03);
+  
+  /* 渐变色 */
+  --gradient-primary: linear-gradient(135deg, #C41E3A 0%, #8E0000 100%);
+  --gradient-gold: linear-gradient(135deg, #FFD700 0%, #FFA000 100%);
+  --gradient-card: linear-gradient(180deg, #FFFFFF 0%, #FFF9F9 100%);
+
+  /* 文字颜色 */
+  --text-primary: #212121;
+  --text-secondary: #5D4037;
+  --text-light: #FFFFFF;
+  --text-muted: #757575;
+
+  /* 边框与圆角 */
+  --border-color: #E0E0E0;
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 16px;
+  --border-radius-xl: 24px;
+
+  /* 阴影 */
+  --shadow-sm: 0 2px 8px rgba(196, 30, 58, 0.05);
+  --shadow-md: 0 4px 16px rgba(196, 30, 58, 0.1);
+  --shadow-lg: 0 8px 32px rgba(196, 30, 58, 0.15);
+  --shadow-gold: 0 4px 20px rgba(255, 215, 0, 0.3);
+
+  /* 字体 */
+  --font-family-heading: 'Noto Serif SC', 'Songti SC', serif;
+  --font-family-body: 'Inter', 'Helvetica Neue', 'PingFang SC', sans-serif;
+  
+  /* 动画 */
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease;
+}
+
+/* 燕赵红装饰纹样 */
+.pattern-cloud {
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 10c-5.5 0-10 4.5-10 10s4.5 10 10 10 10-4.5 10-10-4.5-10-10-10zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8z' fill='%23c41e3a' fill-opacity='0.05'/%3E%3C/svg%3E");
+}
+
+.pattern-wall {
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='20' viewBox='0 0 60 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h60v2H0V0zm0 10h60v2H0v-2zm0 8h60v2H0v-2zM10 2v8h2V2h-2zm20 0v8h2V2h-2zm20 0v8h2V2h-2zM0 12v6h2v-6H0zm20 0v6h2v-6h-2zm20 0v6h2v-6h-2z' fill='%23c41e3a' fill-opacity='0.03'/%3E%3C/svg%3E");
+}
+
+/* 数字科技感装饰 */
+.digital-grid {
+  background-image: linear-gradient(var(--bg-overlay) 1px, transparent 1px),
+                    linear-gradient(90deg, var(--bg-overlay) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+/* 全局按钮样式优化 */
+.el-button--primary {
+  --el-button-bg-color: var(--color-primary);
+  --el-button-border-color: var(--color-primary);
+  --el-button-hover-bg-color: var(--color-primary-light);
+  --el-button-hover-border-color: var(--color-primary-light);
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.el-button--outline {
+  --el-button-text-color: var(--color-primary);
+  --el-button-border-color: var(--color-primary);
+  --el-button-hover-text-color: white;
+  --el-button-hover-bg-color: var(--color-primary);
+}
+
+/* 全局滚动条美化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #E57373;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}

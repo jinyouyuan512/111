@@ -1,0 +1,69 @@
+{
+  "name": "传承学院-AI智能推荐",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "academy/book-recommend",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "接收推荐请求",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "academy-recommend"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, title, author, category, description, tags, rating, read_count, is_recommended FROM red_book ORDER BY rating DESC, read_count DESC LIMIT 20"
+      },
+      "id": "get-books",
+      "name": "获取书籍数据",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [500, 300],
+      "credentials": {
+        "mySql": {
+          "id": "1",
+          "name": "MySQL jiyi_academy"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 获取用户偏好和书籍数据\nconst webhookData = $('接收推荐请求').first().json;\nconst interests = webhookData.body?.interests || [];\nconst purpose = webhookData.body?.purpose || 'history';\nconst books = $input.all().map(item => item.json);\n\n// 基于规则的智能推荐算法\nfunction calculateMatchScore(book, interests, purpose) {\n  let score = 50; // 基础分\n  \n  // 根据用户兴趣匹配标签\n  const bookTags = (book.tags || '').toLowerCase();\n  const bookTitle = (book.title || '').toLowerCase();\n  const bookDesc = (book.description || '').toLowerCase();\n  \n  for (const interest of interests) {\n    const keyword = interest.toLowerCase();\n    if (bookTags.includes(keyword) || bookTitle.includes(keyword) || bookDesc.includes(keyword)) {\n      score += 15;\n    }\n  }\n  \n  // 根据阅读目的匹配分类\n  const purposeCategories = {\n    'history': ['党史著作', '红色经典'],\n    'party': ['党史著作', '纪实文学'],\n    'literature': ['红色经典', '纪实文学'],\n    'youth': ['青少年读物', '红色经典']\n  };\n  \n  const targetCategories = purposeCategories[purpose] || [];\n  if (targetCategories.includes(book.category)) {\n    score += 20;\n  }\n  \n  // 推荐书籍加分\n  if (book.is_recommended) {\n    score += 10;\n  }\n  \n  // 评分加分\n  if (book.rating >= 4.8) score += 10;\n  else if (book.rating >= 4.5) score += 5;\n  \n  return Math.min(score, 99);\n}\n\n// 生成推荐理由\nfunction generateReason(book, interests, purpose) {\n  const reasons = [];\n  \n  if (book.is_recommended) {\n    reasons.push('编辑精选推荐');\n  }\n  \n  if (book.rating >= 4.8) {\n    reasons.push('读者高度评价');\n  }\n  \n  const purposeReasons = {\n    'history': '深入了解河北红色历史',\n    'party': '党史学习教育必读',\n    'literature': '文学性与革命性完美结合',\n    'youth': '适合青少年阅读学习'\n  };\n  \n  if (purposeReasons[purpose]) {\n    reasons.push(purposeReasons[purpose]);\n  }\n  \n  for (const interest of interests) {\n    if ((book.tags || '').includes(interest) || (book.title || '').includes(interest)) {\n      reasons.push(`与您关注的「${interest}」主题相关`);\n      break;\n    }\n  }\n  \n  return reasons.join('，') || '经典红色读物，值得一读';\n}\n\n// 生成推荐亮点\nfunction generateHighlights(book) {\n  const highlights = [];\n  \n  if (book.rating >= 4.5) highlights.push(`评分 ${book.rating}`);\n  if (book.read_count > 50000) highlights.push('热门读物');\n  if (book.is_recommended) highlights.push('编辑推荐');\n  \n  const categoryHighlights = {\n    '红色经典': '文学经典',\n    '党史著作': '权威资料',\n    '人物传记': '人物故事',\n    '纪实文学': '真实记录',\n    '青少年读物': '通俗易懂'\n  };\n  \n  if (categoryHighlights[book.category]) {\n    highlights.push(categoryHighlights[book.category]);\n  }\n  \n  return highlights.slice(0, 3);\n}\n\n// 计算所有书籍的匹配度并排序\nconst scoredBooks = books.map(book => ({\n  ...book,\n  matchScore: calculateMatchScore(book, interests, purpose)\n})).sort((a, b) => b.matchScore - a.matchScore);\n\n// 取前3本作为推荐\nconst recommendations = scoredBooks.slice(0, 3).map(book => ({\n  bookId: book.id,\n  title: book.title,\n  author: book.author,\n  category: book.category,\n  matchScore: book.matchScore,\n  reason: generateReason(book, interests, purpose),\n  highlights: generateHighlights(book)\n}));\n\n// 生成个性化提示\nconst tips = {\n  'history': '建议您从《西柏坡》系列开始阅读，了解河北在中国革命史上的重要地位。',\n  'party': '推荐先阅读党史著作，系统了解党的光辉历程。',\n  'literature': '红色经典文学作品能让您在文学享受中感受革命精神。',\n  'youth': '这些书籍语言通俗、故事生动，非常适合青少年阅读。'\n};\n\nconst result = {\n  success: true,\n  recommendations: recommendations,\n  personalizedTip: tips[purpose] || '希望这些推荐能帮助您更好地了解河北红色文化。'\n};\n\nreturn [{ json: result }];"
+      },
+      "id": "ai-recommend",
+      "name": "AI智能推荐算法",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "response",
+      "name": "返回推荐结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1000, 300]
+    }
+  ],
+  "connections": {
+    "接收推荐请求": {
+      "main": [[{ "node": "获取书籍数据", "type": "main", "index": 0 }]]
+    },
+    "获取书籍数据": {
+      "main": [[{ "node": "AI智能推荐算法", "type": "main", "index": 0 }]]
+    },
+    "AI智能推荐算法": {
+      "main": [[{ "node": "返回推荐结果", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

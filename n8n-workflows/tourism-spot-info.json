@@ -1,0 +1,67 @@
+{
+  "name": "智慧旅游 - 景点详情查询",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/spot-info",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "i1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "options": { "temperature": 0.6 }
+      },
+      "id": "i2",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [400, 500]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是河北红色旅游景点专家。\n\n景点：{{ $json.spotName || '西柏坡纪念馆' }}\n\n请提供该景点的详细介绍，返回JSON：\n{\n  \"introduction\": \"景点简介(100字内)\",\n  \"historicalSignificance\": \"历史意义(50字内)\",\n  \"mustSee\": [\"必看点1\", \"必看点2\", \"必看点3\"],\n  \"visitGuide\": \"游览建议(50字内)\",\n  \"nearbyFood\": [\"推荐美食1\", \"推荐美食2\"]\n}\n\n只返回JSON。"
+      },
+      "id": "i3",
+      "name": "AI生成介绍",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Webhook').first().json;\nconst spotName = input.spotName || '西柏坡纪念馆';\n\n// 景点数据库\nconst spotDB = {\n  '西柏坡纪念馆': { city: '石家庄', district: '平山县', openTime: '09:00-17:00', price: 0, needReservation: true, duration: '2-3小时', rating: 4.9, reviewCount: 12580, lat: 38.32, lng: 114.18 },\n  '狼牙山五壮士纪念地': { city: '保定', district: '易县', openTime: '08:00-17:00', price: 80, needReservation: false, duration: '3-4小时', rating: 4.8, reviewCount: 8920, lat: 39.25, lng: 115.45 },\n  '白洋淀雁翎队纪念馆': { city: '保定', district: '安新县', openTime: '08:00-18:00', price: 40, needReservation: false, duration: '半天-1天', rating: 4.7, reviewCount: 15680, lat: 38.92, lng: 115.95 },\n  '冉庄地道战遗址': { city: '保定', district: '清苑区', openTime: '08:30-17:30', price: 30, needReservation: false, duration: '2小时', rating: 4.5, reviewCount: 7890, lat: 38.78, lng: 115.52 },\n  '董存瑞烈士陵园': { city: '承德', district: '隆化县', openTime: '08:00-17:00', price: 0, needReservation: false, duration: '1-2小时', rating: 4.7, reviewCount: 3450, lat: 41.32, lng: 117.73 },\n  '李大钊纪念馆': { city: '唐山', district: '乐亭县', openTime: '09:00-17:00', price: 0, needReservation: true, duration: '1-2小时', rating: 4.8, reviewCount: 5230, lat: 39.43, lng: 118.88 },\n  '八路军一二九师司令部旧址': { city: '邯郸', district: '涉县', openTime: '09:00-17:00', price: 0, needReservation: false, duration: '2-3小时', rating: 4.6, reviewCount: 4520, lat: 36.58, lng: 113.67 },\n  '晋察冀边区革命纪念馆': { city: '保定', district: '阜平县', openTime: '09:00-17:00', price: 0, needReservation: false, duration: '1-2小时', rating: 4.5, reviewCount: 2890, lat: 38.85, lng: 114.20 }\n};\n\nconst spot = spotDB[spotName] || spotDB['西柏坡纪念馆'];\n\n// 模拟实时数据\nconst hour = new Date().getHours();\nconst [openH] = spot.openTime.split('-')[0].split(':').map(Number);\nconst [closeH] = spot.openTime.split('-')[1].split(':').map(Number);\nconst isOpen = hour >= openH && hour < closeH;\n\nlet crowdLevel = 'low', waitTime = 0;\nif (hour >= 10 && hour <= 12) { crowdLevel = 'high'; waitTime = 25; }\nelse if (hour >= 14 && hour <= 16) { crowdLevel = 'medium'; waitTime = 10; }\n\n// 解析AI内容\nlet aiContent = {\n  introduction: `${spotName}是河北省重要的红色旅游景点`,\n  historicalSignificance: '具有重要的革命历史意义',\n  mustSee: ['纪念馆主展厅', '历史遗址', '纪念碑'],\n  visitGuide: '建议上午游览，避开节假日高峰',\n  nearbyFood: ['当地农家菜', '特色小吃']\n};\n\ntry {\n  const aiText = $input.first().json.text || '';\n  const match = aiText.match(/\\{[\\s\\S]*\\}/);\n  if (match) aiContent = JSON.parse(match[0]);\n} catch (e) {}\n\n// 构建完整信息\nreturn {\n  success: true,\n  spotName,\n  basicInfo: {\n    city: spot.city,\n    district: spot.district,\n    address: `河北省${spot.city}${spot.district}`,\n    coordinates: { lat: spot.lat, lng: spot.lng }\n  },\n  visitInfo: {\n    openTime: spot.openTime,\n    ticketPrice: spot.price === 0 ? '免费' : spot.price + '元',\n    needReservation: spot.needReservation,\n    suggestedDuration: spot.duration,\n    isCurrentlyOpen: isOpen\n  },\n  realtime: {\n    crowdLevel,\n    waitTime: waitTime + '分钟',\n    parkingAvailable: true\n  },\n  rating: {\n    score: spot.rating,\n    reviewCount: spot.reviewCount,\n    recommendation: spot.rating >= 4.5 ? '强烈推荐' : '推荐'\n  },\n  content: {\n    introduction: aiContent.introduction,\n    historicalSignificance: aiContent.historicalSignificance,\n    mustSee: aiContent.mustSee,\n    visitGuide: aiContent.visitGuide\n  },\n  nearby: {\n    food: aiContent.nearbyFood,\n    hotels: ['景区宾馆', '快捷酒店'],\n    attractions: []\n  },\n  notices: [\n    spot.needReservation ? '需提前预约' : '无需预约',\n    '请携带身份证',\n    crowdLevel === 'high' ? '当前人流较大' : '当前人流适中'\n  ],\n  generatedAt: new Date().toISOString()\n};"
+      },
+      "id": "i4",
+      "name": "组装信息",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "i5",
+      "name": "返回结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "AI生成介绍", "type": "main", "index": 0 }]] },
+    "OpenAI Chat Model": { "ai_languageModel": [[{ "node": "AI生成介绍", "type": "ai_languageModel", "index": 0 }]] },
+    "AI生成介绍": { "main": [[{ "node": "组装信息", "type": "main", "index": 0 }]] },
+    "组装信息": { "main": [[{ "node": "返回结果", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

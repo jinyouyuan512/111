@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试视频API响应</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #c41e3a;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #c41e3a;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #a0182f;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            border-left: 4px solid #c41e3a;
+        }
+        .success {
+            color: #52c41a;
+            font-weight: bold;
+        }
+        .error {
+            color: #ff4d4f;
+            font-weight: bold;
+        }
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .video-preview {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+        video {
+            width: 100%;
+            max-width: 600px;
+            border-radius: 4px;
+        }
+        .info {
+            background: #e6f7ff;
+            border-left: 4px solid #1890ff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 测试视频API响应</h1>
+        
+        <div class="info">
+            <strong>测试目的：</strong>验证 GET /api/posts 接口是否返回视频数据<br>
+            <strong>预期结果：</strong>post_id=31 应该包含 video 字段，包含 url, thumbnail, duration
+        </div>
+
+        <button onclick="testGetPosts()">测试 GET /api/posts</button>
+        <button onclick="testGetPostById()">测试 GET /api/posts/31</button>
+        <button onclick="clearResults()">清除结果</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8083';
+        const token = localStorage.getItem('token');
+
+        function clearResults() {
+            document.getElementById('result').innerHTML = '';
+        }
+
+        async function testGetPosts() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="result">正在请求 GET /api/posts...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/posts?page=1&size=20`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // 查找包含视频的帖子
+                    const postsWithVideo = data.data.filter(post => post.video);
+                    const post31 = data.data.find(post => post.id === 31);
+
+                    let html = '<div class="result">';
+                    html += `<p class="success">✅ 请求成功！状态码: ${response.status}</p>`;
+                    html += `<p>总帖子数: ${data.data.length}</p>`;
+                    html += `<p>包含视频的帖子数: ${postsWithVideo.length}</p>`;
+                    
+                    if (post31) {
+                        html += '<h3>Post ID 31 详情:</h3>';
+                        html += `<p>内容: ${post31.content}</p>`;
+                        html += `<p>图片数: ${post31.images ? post31.images.length : 0}</p>`;
+                        
+                        if (post31.video) {
+                            html += '<p class="success">✅ 包含视频数据！</p>';
+                            html += `<p>视频URL: ${post31.video.url}</p>`;
+                            html += `<p>缩略图: ${post31.video.thumbnail || '无'}</p>`;
+                            html += `<p>时长: ${post31.video.duration} 秒 (${formatDuration(post31.video.duration)})</p>`;
+                            
+                            // 显示视频预览
+                            html += '<div class="video-preview">';
+                            html += '<h4>视频预览:</h4>';
+                            html += `<video src="${post31.video.url}" controls poster="${post31.video.thumbnail || ''}"></video>`;
+                            html += '</div>';
+                        } else {
+                            html += '<p class="error">❌ 没有视频数据！</p>';
+                        }
+                    } else {
+                        html += '<p class="error">❌ 未找到 Post ID 31</p>';
+                    }
+
+                    html += '<h3>完整响应数据:</h3>';
+                    html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    html += '</div>';
+                    
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = `<div class="result"><p class="error">❌ 请求失败！状态码: ${response.status}</p><pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result"><p class="error">❌ 请求出错: ${error.message}</p></div>`;
+            }
+        }
+
+        async function testGetPostById() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="result">正在请求 GET /api/posts/31...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/posts/31`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const post = data.data;
+
+                    let html = '<div class="result">';
+                    html += `<p class="success">✅ 请求成功！状态码: ${response.status}</p>`;
+                    html += '<h3>Post ID 31 详情:</h3>';
+                    html += `<p>内容: ${post.content}</p>`;
+                    html += `<p>图片数: ${post.images ? post.images.length : 0}</p>`;
+                    
+                    if (post.video) {
+                        html += '<p class="success">✅ 包含视频数据！</p>';
+                        html += `<p>视频URL: ${post.video.url}</p>`;
+                        html += `<p>缩略图: ${post.video.thumbnail || '无'}</p>`;
+                        html += `<p>时长: ${post.video.duration} 秒 (${formatDuration(post.video.duration)})</p>`;
+                        
+                        // 显示视频预览
+                        html += '<div class="video-preview">';
+                        html += '<h4>视频预览:</h4>';
+                        html += `<video src="${post.video.url}" controls poster="${post.video.thumbnail || ''}"></video>`;
+                        html += '</div>';
+                    } else {
+                        html += '<p class="error">❌ 没有视频数据！</p>';
+                    }
+
+                    html += '<h3>完整响应数据:</h3>';
+                    html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    html += '</div>';
+                    
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = `<div class="result"><p class="error">❌ 请求失败！状态码: ${response.status}</p><pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result"><p class="error">❌ 请求出错: ${error.message}</p></div>`;
+            }
+        }
+
+        function formatDuration(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // 页面加载时显示token状态
+        window.onload = function() {
+            if (!token) {
+                document.getElementById('result').innerHTML = 
+                    '<div class="result"><p class="error">⚠️ 未找到登录token，请先登录！</p></div>';
+            }
+        };
+    </script>
+</body>
+</html>

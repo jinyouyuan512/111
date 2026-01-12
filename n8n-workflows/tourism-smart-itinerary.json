@@ -1,0 +1,78 @@
+{
+  "name": "智慧旅游 - 智能行程生成器",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/smart-itinerary",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 准备行程数据\nconst input = $input.first().json;\nconst spots = input.spots || ['西柏坡纪念馆'];\nconst startDate = input.startDate || new Date().toISOString().split('T')[0];\nconst pace = input.pace || 'moderate';\nconst includeFood = input.includeFood !== false;\nconst includeHotel = input.includeHotel !== false;\nconst budget = input.budget || 'medium';\n\n// 景点数据库\nconst spotDB = {\n  '西柏坡纪念馆': { duration: 180, price: 0, city: '石家庄', highlights: ['七届二中全会会址', '毛泽东旧居'], tips: '周一闭馆需预约' },\n  '狼牙山五壮士纪念地': { duration: 240, price: 80, city: '保定', highlights: ['五壮士纪念塔', '棋盘陀'], tips: '山路较陡穿运动鞋' },\n  '白洋淀雁翎队纪念馆': { duration: 300, price: 40, city: '保定', highlights: ['雁翎队纪念馆', '荷花大观园'], tips: '夏季荷花最美' },\n  '冉庄地道战遗址': { duration: 120, price: 30, city: '保定', highlights: ['地道网络', '抗战民居'], tips: '地道内较窄注意安全' },\n  '晋察冀边区革命纪念馆': { duration: 120, price: 0, city: '保定', highlights: ['聂荣臻旧居', '边区政府旧址'], tips: '免费开放' },\n  '董存瑞烈士陵园': { duration: 90, price: 0, city: '承德', highlights: ['董存瑞纪念碑', '烈士事迹展'], tips: '免费参观' },\n  '李大钊纪念馆': { duration: 120, price: 0, city: '唐山', highlights: ['李大钊故居', '生平事迹展'], tips: '周一闭馆' },\n  '八路军一二九师司令部旧址': { duration: 150, price: 0, city: '邯郸', highlights: ['司令部旧址', '将军岭'], tips: '可联游娲皇宫' }\n};\n\n// 餐厅数据\nconst restaurants = {\n  '石家庄': [{ name: '正定荣国府餐厅', price: 60 }, { name: '燕赵风味楼', price: 50 }],\n  '保定': [{ name: '白运章包子', price: 30 }, { name: '槐茂酱菜馆', price: 45 }],\n  '承德': [{ name: '御膳房', price: 80 }, { name: '满族八大碗', price: 65 }],\n  '唐山': [{ name: '鸿宴饭庄', price: 55 }, { name: '唐山麻糖店', price: 25 }],\n  '邯郸': [{ name: '丛台酒楼', price: 70 }, { name: '邯郸拽面馆', price: 35 }]\n};\n\n// 酒店价格\nconst hotelPrices = { low: 120, medium: 250, high: 500 };\n\n// 生成基础行程\nconst paceConfig = { relaxed: 360, moderate: 480, intensive: 600 };\nconst maxMinutes = paceConfig[pace] || 480;\n\nconst days = [];\nlet daySpots = [], dayMinutes = 0, totalCost = 0;\n\nfor (let i = 0; i < spots.length; i++) {\n  const spot = spots[i];\n  const info = spotDB[spot] || { duration: 120, price: 50, city: '石家庄', highlights: [], tips: '' };\n  \n  if (dayMinutes + info.duration > maxMinutes && daySpots.length > 0) {\n    days.push({ spots: [...daySpots], city: spotDB[daySpots[0]]?.city || '石家庄' });\n    daySpots = [];\n    dayMinutes = 0;\n  }\n  \n  daySpots.push({ name: spot, ...info });\n  dayMinutes += info.duration;\n  totalCost += info.price;\n}\nif (daySpots.length > 0) {\n  days.push({ spots: [...daySpots], city: spotDB[daySpots[0]]?.city || '石家庄' });\n}\n\n// 添加餐饮住宿\ndays.forEach((day, idx) => {\n  const cityRest = restaurants[day.city] || restaurants['石家庄'];\n  if (includeFood) {\n    day.meals = [{ type: '午餐', ...cityRest[0] }, { type: '晚餐', ...cityRest[1] || cityRest[0] }];\n    totalCost += (cityRest[0].price + (cityRest[1]?.price || cityRest[0].price));\n  }\n  if (includeHotel && idx < days.length - 1) {\n    day.hotel = { price: hotelPrices[budget] };\n    totalCost += hotelPrices[budget];\n  }\n});\n\nreturn {\n  spots,\n  startDate,\n  pace,\n  budget,\n  days,\n  totalCost,\n  includeFood,\n  includeHotel\n};"
+      },
+      "id": "a2",
+      "name": "准备行程数据",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "options": { "temperature": 0.7 }
+      },
+      "id": "a3",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [600, 500]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是专业的河北红色旅游行程规划师。\n\n根据以下行程数据，生成一份精美的旅游行程单：\n\n景点：{{ $json.spots.join('、') }}\n出发日期：{{ $json.startDate }}\n行程节奏：{{ $json.pace === 'relaxed' ? '休闲' : $json.pace === 'intensive' ? '紧凑' : '适中' }}\n天数：{{ $json.days.length }}天\n预算等级：{{ $json.budget === 'low' ? '经济' : $json.budget === 'high' ? '豪华' : '舒适' }}\n\n请生成JSON格式的行程单，包含：\n1. title: 行程标题（如\"河北红色文化2日游\"）\n2. description: 一句话描述行程亮点\n3. dailyTips: 每天的特别建议数组（与天数对应）\n4. highlights: 3-5个行程亮点\n5. packingList: 5个必带物品建议\n\n只返回JSON，格式：\n{\"title\":\"标题\",\"description\":\"描述\",\"dailyTips\":[\"第1天建议\",\"第2天建议\"],\"highlights\":[\"亮点1\",\"亮点2\"],\"packingList\":[\"物品1\",\"物品2\"]}"
+      },
+      "id": "a4",
+      "name": "AI优化行程",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const baseData = $('准备行程数据').first().json;\nlet aiContent = {};\n\ntry {\n  const aiText = $input.first().json.text || '';\n  const match = aiText.match(/\\{[\\s\\S]*\\}/);\n  if (match) aiContent = JSON.parse(match[0]);\n} catch (e) {\n  aiContent = {\n    title: `河北红色之旅${baseData.days.length}日游`,\n    description: `探访${baseData.spots.slice(0,2).join('、')}等红色景点`,\n    dailyTips: baseData.days.map((_, i) => `第${i+1}天注意合理安排时间`),\n    highlights: ['重温革命历史', '感受红色文化', '品尝地方美食'],\n    packingList: ['身份证', '舒适运动鞋', '防晒用品', '充电宝', '雨具']\n  };\n}\n\n// 生成完整行程\nconst startDate = new Date(baseData.startDate);\nconst itinerary = {\n  success: true,\n  title: aiContent.title,\n  description: aiContent.description,\n  startDate: baseData.startDate,\n  endDate: new Date(startDate.getTime() + (baseData.days.length - 1) * 86400000).toISOString().split('T')[0],\n  totalDays: baseData.days.length,\n  pace: baseData.pace,\n  days: baseData.days.map((day, idx) => {\n    const date = new Date(startDate.getTime() + idx * 86400000);\n    return {\n      day: idx + 1,\n      date: date.toISOString().split('T')[0],\n      weekday: ['周日','周一','周二','周三','周四','周五','周六'][date.getDay()],\n      city: day.city,\n      spots: day.spots.map((s, i) => ({\n        order: i + 1,\n        name: s.name,\n        duration: Math.floor(s.duration/60) + '小时' + (s.duration%60 > 0 ? s.duration%60 + '分钟' : ''),\n        price: s.price,\n        highlights: s.highlights,\n        tips: s.tips\n      })),\n      meals: day.meals || [],\n      hotel: day.hotel || null,\n      dailyTip: aiContent.dailyTips?.[idx] || ''\n    };\n  }),\n  summary: {\n    totalSpots: baseData.spots.length,\n    estimatedCost: baseData.totalCost + 100,\n    highlights: aiContent.highlights,\n    packingList: aiContent.packingList\n  },\n  generatedAt: new Date().toISOString()\n};\n\nreturn itinerary;"
+      },
+      "id": "a5",
+      "name": "组装行程",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "a6",
+      "name": "返回结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1100, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "准备行程数据", "type": "main", "index": 0 }]] },
+    "准备行程数据": { "main": [[{ "node": "AI优化行程", "type": "main", "index": 0 }]] },
+    "OpenAI Chat Model": { "ai_languageModel": [[{ "node": "AI优化行程", "type": "ai_languageModel", "index": 0 }]] },
+    "AI优化行程": { "main": [[{ "node": "组装行程", "type": "main", "index": 0 }]] },
+    "组装行程": { "main": [[{ "node": "返回结果", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

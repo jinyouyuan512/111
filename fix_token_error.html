@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token错误修复工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #a0182f;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .status-box {
+            background: #f8f9fa;
+            border-left: 4px solid #a0182f;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .status-item:last-child {
+            border-bottom: none;
+        }
+        .status-label {
+            font-weight: 600;
+            color: #333;
+        }
+        .status-value {
+            font-family: 'Courier New', monospace;
+            color: #666;
+            max-width: 400px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .status-value.good {
+            color: #4caf50;
+            font-weight: bold;
+        }
+        .status-value.bad {
+            color: #f44336;
+            font-weight: bold;
+        }
+        button {
+            background: linear-gradient(135deg, #a0182f 0%, #c41e3a 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            width: 100%;
+            margin: 10px 0;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(160, 24, 47, 0.3);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(160, 24, 47, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button.secondary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        button.danger {
+            background: linear-gradient(135deg, #f44336 0%, #e91e63 100%);
+        }
+        .log {
+            background: #263238;
+            color: #aed581;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        .log-item {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #4caf50;
+            padding-left: 10px;
+        }
+        .log-item.error {
+            border-left-color: #f44336;
+            color: #ff8a80;
+        }
+        .log-item.warning {
+            border-left-color: #ff9800;
+            color: #ffd54f;
+        }
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .success-box {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .warning-box {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Token错误修复工具</h1>
+        <p class="subtitle">诊断并修复登录Token相关问题</p>
+
+        <div class="status-box">
+            <h3>当前状态</h3>
+            <div class="status-item">
+                <span class="status-label">Token状态:</span>
+                <span class="status-value" id="token-status">检查中...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">用户信息:</span>
+                <span class="status-value" id="user-status">检查中...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">登录状态:</span>
+                <span class="status-value" id="login-status">检查中...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Token过期时间:</span>
+                <span class="status-value" id="token-expiry">检查中...</span>
+            </div>
+        </div>
+
+        <div id="message-box"></div>
+
+        <button onclick="checkStatus()">🔍 重新检查状态</button>
+        <button class="secondary" onclick="clearAndReload()">🔄 清除缓存并刷新</button>
+        <button class="danger" onclick="clearAndLogin()">🚪 清除缓存并跳转登录</button>
+
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('log')
+            const logItem = document.createElement('div')
+            logItem.className = `log-item ${type}`
+            logItem.textContent = `[${new Date().toLocaleTimeString()}] ${message}`
+            logContainer.appendChild(logItem)
+            logContainer.scrollTop = logContainer.scrollHeight
+        }
+
+        function showMessage(message, type = 'info') {
+            const messageBox = document.getElementById('message-box')
+            const className = type === 'success' ? 'success-box' : 
+                            type === 'warning' ? 'warning-box' : 'info-box'
+            messageBox.innerHTML = `<div class="${className}">${message}</div>`
+        }
+
+        function checkStatus() {
+            log('开始检查Token状态...')
+            
+            // 检查Token
+            const token = localStorage.getItem('token')
+            const tokenStatus = document.getElementById('token-status')
+            
+            if (!token) {
+                tokenStatus.textContent = '❌ 未找到Token'
+                tokenStatus.className = 'status-value bad'
+                log('未找到Token', 'error')
+                showMessage('⚠️ 您尚未登录，请先登录后再使用社交功能', 'warning')
+                return
+            }
+            
+            tokenStatus.textContent = '✅ Token存在'
+            tokenStatus.className = 'status-value good'
+            log('Token存在: ' + token.substring(0, 20) + '...')
+            
+            // 检查用户信息
+            const userInfoStr = localStorage.getItem('userInfo')
+            const userStatus = document.getElementById('user-status')
+            
+            if (!userInfoStr) {
+                userStatus.textContent = '❌ 未找到用户信息'
+                userStatus.className = 'status-value bad'
+                log('未找到用户信息', 'error')
+            } else {
+                try {
+                    const userInfo = JSON.parse(userInfoStr)
+                    const userId = userInfo?.data?.id || userInfo?.id
+                    const username = userInfo?.data?.username || userInfo?.username
+                    
+                    if (userId) {
+                        userStatus.textContent = `✅ ${username || 'User'} (ID: ${userId})`
+                        userStatus.className = 'status-value good'
+                        log(`用户信息: ${username} (ID: ${userId})`)
+                    } else {
+                        userStatus.textContent = '⚠️ 用户信息格式异常'
+                        userStatus.className = 'status-value bad'
+                        log('用户信息格式异常', 'warning')
+                    }
+                } catch (e) {
+                    userStatus.textContent = '❌ 用户信息解析失败'
+                    userStatus.className = 'status-value bad'
+                    log('用户信息解析失败: ' + e.message, 'error')
+                }
+            }
+            
+            // 检查登录状态
+            const loginStatus = document.getElementById('login-status')
+            const isLoggedIn = !!token
+            loginStatus.textContent = isLoggedIn ? '✅ 已登录' : '❌ 未登录'
+            loginStatus.className = isLoggedIn ? 'status-value good' : 'status-value bad'
+            
+            // 尝试解析JWT Token
+            try {
+                const parts = token.split('.')
+                if (parts.length === 3) {
+                    const payload = JSON.parse(atob(parts[1]))
+                    const expiryDate = new Date(payload.exp * 1000)
+                    const now = Date.now()
+                    const isExpired = now > payload.exp * 1000
+                    
+                    const tokenExpiry = document.getElementById('token-expiry')
+                    
+                    if (isExpired) {
+                        tokenExpiry.textContent = `❌ 已过期 (${expiryDate.toLocaleString()})`
+                        tokenExpiry.className = 'status-value bad'
+                        log('Token已过期: ' + expiryDate.toLocaleString(), 'error')
+                        showMessage('❌ 您的登录已过期，请重新登录', 'warning')
+                    } else {
+                        const remainingTime = Math.floor((payload.exp * 1000 - now) / 1000 / 60)
+                        tokenExpiry.textContent = `✅ ${expiryDate.toLocaleString()} (剩余${remainingTime}分钟)`
+                        tokenExpiry.className = 'status-value good'
+                        log(`Token有效，剩余时间: ${remainingTime}分钟`)
+                        
+                        if (remainingTime < 30) {
+                            showMessage(`⚠️ Token即将过期（剩余${remainingTime}分钟），建议重新登录`, 'warning')
+                        } else {
+                            showMessage('✅ Token状态正常，如果仍有问题，请尝试清除缓存并重新登录', 'success')
+                        }
+                    }
+                } else {
+                    throw new Error('Invalid JWT format')
+                }
+            } catch (e) {
+                const tokenExpiry = document.getElementById('token-expiry')
+                tokenExpiry.textContent = '⚠️ 无法解析Token'
+                tokenExpiry.className = 'status-value bad'
+                log('Token格式错误: ' + e.message, 'error')
+                showMessage('❌ Token格式错误，请清除缓存并重新登录', 'warning')
+            }
+        }
+
+        function clearAndReload() {
+            if (confirm('确定要清除所有缓存并刷新页面吗？\n\n这将清除您的登录状态，需要重新登录。')) {
+                log('清除所有缓存...', 'warning')
+                
+                localStorage.removeItem('token')
+                localStorage.removeItem('refreshToken')
+                localStorage.removeItem('userInfo')
+                
+                log('缓存已清除', 'warning')
+                log('3秒后刷新页面...', 'warning')
+                
+                setTimeout(() => {
+                    location.reload()
+                }, 3000)
+            }
+        }
+
+        function clearAndLogin() {
+            if (confirm('确定要清除缓存并跳转到登录页面吗？')) {
+                log('清除所有缓存...', 'warning')
+                
+                localStorage.removeItem('token')
+                localStorage.removeItem('refreshToken')
+                localStorage.removeItem('userInfo')
+                
+                log('缓存已清除', 'warning')
+                log('跳转到登录页面...', 'warning')
+                
+                setTimeout(() => {
+                    window.location.href = '/login'
+                }, 2000)
+            }
+        }
+
+        // 页面加载时自动检查
+        window.onload = function() {
+            log('Token错误修复工具已启动')
+            checkStatus()
+        }
+    </script>
+</body>
+</html>

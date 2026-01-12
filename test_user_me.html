@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>测试 /api/users/me</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <h1>测试用户信息接口</h1>
+    <div>
+        <label>Token: </label>
+        <input type="text" id="token" style="width: 500px" placeholder="从 localStorage 复制 token">
+        <button onclick="testUserMe()">测试 /api/users/me</button>
+    </div>
+    <div style="margin-top: 20px;">
+        <h3>响应结果：</h3>
+        <pre id="result" style="background: #f5f5f5; padding: 10px; border-radius: 4px;"></pre>
+    </div>
+
+    <script>
+        // 自动从 localStorage 读取 token
+        window.onload = function() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                document.getElementById('token').value = token;
+            }
+        };
+
+        async function testUserMe() {
+            const token = document.getElementById('token').value;
+            const resultEl = document.getElementById('result');
+            
+            if (!token) {
+                resultEl.textContent = '请输入 token';
+                return;
+            }
+
+            try {
+                resultEl.textContent = '请求中...';
+                
+                const response = await fetch('http://localhost:8081/api/users/me', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                resultEl.textContent = JSON.stringify({
+                    status: response.status,
+                    statusText: response.statusText,
+                    data: data
+                }, null, 2);
+            } catch (error) {
+                resultEl.textContent = '错误: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

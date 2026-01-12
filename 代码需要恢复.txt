@@ -1,0 +1,27 @@
+抱歉，我把代码改乱了。
+
+当前问题：
+  backend/creative-service/src/main/java/com/jiyi/creative/service/impl/CreativeServiceImpl.java
+  中的 submitDesign 方法有语法错误。
+
+最简单的解决方案：
+  1. 使用 Git 恢复到之前的版本
+  2. 或者手动修复代码
+
+我需要知道的信息：
+  请在浏览器控制台中查看：
+  - "提交数据:" 后面显示了什么？
+  - "可选字段状态:" 后面显示了什么？
+  
+  这样我就能知道前端到底发送了哪些字段，
+  然后针对性地修复后端代码。
+
+临时解决方案：
+  如果你有 Git，执行：
+    cd backend/creative-service
+    git checkout src/main/java/com/jiyi/creative/service/impl/CreativeServiceImpl.java
+  
+  这会恢复到之前的版本。
+
+或者，我可以重新编写整个方法，但需要你先告诉我：
+  浏览器控制台显示的"提交数据"和"可选字段状态"是什么？

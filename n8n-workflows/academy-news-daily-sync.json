@@ -1,0 +1,81 @@
+{
+  "name": "传承学院-每日新闻同步",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "hours", "hoursInterval": 6 }]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "定时触发(每6小时)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://hebei.hebnews.cn/node_50.htm",
+        "options": { "response": { "response": { "fullResponse": true } } }
+      },
+      "id": "fetch-hebei-news",
+      "name": "抓取河北日报",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 200]
+    },
+    {
+      "parameters": {
+        "url": "https://www.hebnews.cn/",
+        "options": { "response": { "response": { "fullResponse": true } } }
+      },
+      "id": "fetch-hebnews",
+      "name": "抓取河北新闻网",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 解析新闻数据并生成模拟数据（实际项目中应解析HTML）\nconst now = new Date();\nconst sources = ['河北日报', '河北新闻网', '长城网', '燕赵都市报'];\nconst categories = ['党建动态', '红色故事', '纪念活动', '教育实践'];\n\nconst newsItems = [\n  {\n    title: `西柏坡纪念馆举办主题展览 - ${now.toLocaleDateString()}`,\n    summary: '展览全面展示了中共中央在西柏坡的光辉历程，通过珍贵文物、历史照片和多媒体展示，生动再现了那段波澜壮阔的革命岁月。',\n    content: '详细内容...',\n    category: '纪念活动',\n    source: '河北日报',\n    author: '记者',\n    external_url: 'https://hebei.hebnews.cn/node_50.htm',\n    is_top: 1,\n    is_hot: 1\n  },\n  {\n    title: `河北省开展\"传承红色基因\"主题教育活动`,\n    summary: '全省各地积极组织党员干部深入红色教育基地，接受革命传统教育。',\n    content: '详细内容...',\n    category: '教育实践',\n    source: '河北新闻网',\n    author: '记者',\n    external_url: 'https://www.hebnews.cn/',\n    is_top: 0,\n    is_hot: 1\n  },\n  {\n    title: `狼牙山五壮士纪念地迎来参观高峰`,\n    summary: '大批群众前往狼牙山缅怀革命先烈，传承英雄精神。',\n    content: '详细内容...',\n    category: '红色故事',\n    source: '燕赵都市报',\n    author: '记者',\n    external_url: 'https://yzdsb.hebnews.cn/',\n    is_top: 0,\n    is_hot: 0\n  }\n];\n\nreturn newsItems.map(item => ({ json: item }));"
+      },
+      "id": "parse-news",
+      "name": "解析新闻数据",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO red_news (title, summary, content, category, source, author, external_url, is_top, is_hot, publish_time, created_at) VALUES ('{{ $json.title }}', '{{ $json.summary }}', '{{ $json.content }}', '{{ $json.category }}', '{{ $json.source }}', '{{ $json.author }}', '{{ $json.external_url }}', {{ $json.is_top }}, {{ $json.is_hot }}, NOW(), NOW()) ON DUPLICATE KEY UPDATE summary = VALUES(summary), is_hot = VALUES(is_hot), updated_at = NOW()"
+      },
+      "id": "insert-news",
+      "name": "写入数据库",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [1000, 300],
+      "credentials": {
+        "mySql": { "id": "mysql-academy", "name": "MySQL Academy" }
+      }
+    }
+  ],
+  "connections": {
+    "定时触发(每6小时)": {
+      "main": [[
+        { "node": "抓取河北日报", "type": "main", "index": 0 },
+        { "node": "抓取河北新闻网", "type": "main", "index": 0 }
+      ]]
+    },
+    "抓取河北日报": {
+      "main": [[{ "node": "解析新闻数据", "type": "main", "index": 0 }]]
+    },
+    "抓取河北新闻网": {
+      "main": [[{ "node": "解析新闻数据", "type": "main", "index": 0 }]]
+    },
+    "解析新闻数据": {
+      "main": [[{ "node": "写入数据库", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录测试 - 冀忆红途</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .status.success {
+            background: #f0fff4;
+            border: 1px solid #38a169;
+            color: #22543d;
+        }
+        .status.error {
+            background: #fff5f5;
+            border: 1px solid #e53e3e;
+            color: #742a2a;
+        }
+        .status.info {
+            background: #ebf8ff;
+            border: 1px solid #4299e1;
+            color: #2c5282;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .quick-login {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .quick-btn {
+            flex: 1;
+            padding: 10px;
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .quick-btn:hover {
+            background: #edf2f7;
+            border-color: #cbd5e0;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+        .services-status {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        .service-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .service-item:last-child {
+            border-bottom: none;
+        }
+        .service-name {
+            font-weight: 600;
+        }
+        .service-status {
+            font-weight: 600;
+        }
+        .service-status.online {
+            color: #38a169;
+        }
+        .service-status.offline {
+            color: #e53e3e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎉 登录测试</h1>
+        <p class="subtitle">Redis 已启动，User Service 已运行</p>
+
+        <div id="statusMessage" class="status info">
+            正在检查服务状态...
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" value="testuser" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" value="123456" required>
+            </div>
+
+            <button type="submit" class="btn" id="loginBtn">登录</button>
+
+            <div class="quick-login">
+                <button type="button" class="quick-btn" onclick="quickLogin('testuser', '123456')">
+                    普通用户
+                </button>
+                <button type="button" class="quick-btn" onclick="quickLogin('admin', 'admin123')">
+                    管理员
+                </button>
+            </div>
+        </form>
+
+        <div id="result" class="result"></div>
+
+        <div class="services-status">
+            <h3 style="margin-bottom: 10px; font-size: 14px;">服务状态</h3>
+            <div class="service-item">
+                <span class="service-name">Redis</span>
+                <span class="service-status" id="redisStatus">检查中...</span>
+            </div>
+            <div class="service-item">
+                <span class="service-name">User Service</span>
+                <span class="service-status" id="userServiceStatus">检查中...</span>
+            </div>
+            <div class="service-item">
+                <span class="service-name">Mall Service</span>
+                <span class="service-status" id="mallServiceStatus">检查中...</span>
+            </div>
+            <div class="service-item">
+                <span class="service-name">Social Service</span>
+                <span class="service-status" id="socialServiceStatus">检查中...</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const statusMessage = document.getElementById('statusMessage');
+        const resultDiv = document.getElementById('result');
+        const loginForm = document.getElementById('loginForm');
+        const loginBtn = document.getElementById('loginBtn');
+
+        // 检查服务状态
+        async function checkServices() {
+            const services = [
+                { name: 'User Service', url: 'http://localhost:8081/actuator/health', id: 'userServiceStatus' },
+                { name: 'Mall Service', url: 'http://localhost:8085/api/mall/products?page=1&size=1', id: 'mallServiceStatus' },
+                { name: 'Social Service', url: 'http://localhost:8083/api/social/posts?page=1&size=1', id: 'socialServiceStatus' }
+            ];
+
+            let allOnline = true;
+
+            for (const service of services) {
+                const statusEl = document.getElementById(service.id);
+                try {
+                    const response = await fetch(service.url);
+                    if (response.ok) {
+                        statusEl.textContent = '✅ 在线';
+                        statusEl.className = 'service-status online';
+                    } else {
+                        statusEl.textContent = '⚠️ 异常';
+                        statusEl.className = 'service-status offline';
+                        allOnline = false;
+                    }
+                } catch (error) {
+                    statusEl.textContent = '❌ 离线';
+                    statusEl.className = 'service-status offline';
+                    allOnline = false;
+                }
+            }
+
+            // Redis 状态（通过 User Service 间接判断）
+            const redisStatusEl = document.getElementById('redisStatus');
+            const userServiceStatusEl = document.getElementById('userServiceStatus');
+            if (userServiceStatusEl.textContent === '✅ 在线') {
+                redisStatusEl.textContent = '✅ 在线';
+                redisStatusEl.className = 'service-status online';
+            } else {
+                redisStatusEl.textContent = '❓ 未知';
+                redisStatusEl.className = 'service-status offline';
+            }
+
+            if (allOnline && userServiceStatusEl.textContent === '✅ 在线') {
+                statusMessage.className = 'status success';
+                statusMessage.textContent = '✅ 所有服务运行正常！可以测试登录了。';
+            } else {
+                statusMessage.className = 'status error';
+                statusMessage.textContent = '❌ 部分服务未运行，请检查服务状态。';
+            }
+        }
+
+        // 快速登录
+        function quickLogin(username, password) {
+            document.getElementById('username').value = username;
+            document.getElementById('password').value = password;
+            loginForm.dispatchEvent(new Event('submit'));
+        }
+
+        // 登录表单提交
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            loginBtn.disabled = true;
+            loginBtn.textContent = '登录中...';
+            resultDiv.style.display = 'none';
+
+            try {
+                const response = await fetch('http://localhost:8081/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                resultDiv.style.display = 'block';
+
+                if (response.ok && data.code === 200) {
+                    statusMessage.className = 'status success';
+                    statusMessage.textContent = '✅ 登录成功！';
+                    resultDiv.textContent = '登录成功！\n\n' + JSON.stringify(data, null, 2);
+                    
+                    // 保存 token
+                    if (data.data && data.data.token) {
+                        localStorage.setItem('token', data.data.token);
+                        localStorage.setItem('userInfo', JSON.stringify(data.data.userInfo));
+                        
+                        setTimeout(() => {
+                            if (confirm('登录成功！是否跳转到首页？')) {
+                                window.location.href = 'http://localhost:3001';
+                            }
+                        }, 1000);
+                    }
+                } else {
+                    statusMessage.className = 'status error';
+                    statusMessage.textContent = '❌ 登录失败：' + (data.message || '未知错误');
+                    resultDiv.textContent = '登录失败\n\n' + JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                statusMessage.className = 'status error';
+                statusMessage.textContent = '❌ 请求失败：' + error.message;
+                resultDiv.style.display = 'block';
+                resultDiv.textContent = '请求失败\n\n错误: ' + error.message + '\n\n请确保 User Service 正在运行';
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = '登录';
+            }
+        });
+
+        // 页面加载时检查服务
+        window.addEventListener('load', () => {
+            checkServices();
+        });
+    </script>
+</body>
+</html>

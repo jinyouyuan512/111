@@ -1,0 +1,47 @@
+{
+  "name": "智慧旅游 - 天气查询(修复版)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/weather",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-weather",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 获取请求数据\nconst body = $input.first().json.body || $input.first().json;\nconst spots = body.spots || ['西柏坡纪念馆'];\n\n// 景点对应城市\nconst spotCityMap = {\n  '西柏坡纪念馆': '石家庄',\n  '狼牙山五壮士纪念地': '保定',\n  '冉庄地道战遗址': '保定',\n  '李大钊纪念馆': '唐山',\n  '白洋淀雁翎队纪念馆': '保定',\n  '塞罕坝展览馆': '承德'\n};\n\n// 生成模拟天气数据\nconst weather = spots.map(spot => {\n  const conditions = ['晴', '多云', '阴', '小雨'];\n  const condition = conditions[Math.floor(Math.random() * conditions.length)];\n  const maxTemp = Math.floor(Math.random() * 15) + 5;\n  const minTemp = maxTemp - Math.floor(Math.random() * 8) - 3;\n  \n  let suggestion = '天气适宜出行，祝旅途愉快';\n  if (condition.includes('雨')) suggestion = '建议携带雨具，注意防滑';\n  if (maxTemp < 5) suggestion = '天气寒冷，注意保暖';\n  \n  return {\n    spotName: spot,\n    city: spotCityMap[spot] || '石家庄',\n    date: new Date().toISOString().split('T')[0],\n    condition,\n    temperature: { min: minTemp, max: maxTemp },\n    humidity: Math.floor(Math.random() * 30) + 40,\n    suggestion\n  };\n});\n\nreturn { weather };"
+      },
+      "id": "generate-weather",
+      "name": "生成天气数据",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond",
+      "name": "返回响应",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [750, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "生成天气数据", "type": "main", "index": 0 }]]
+    },
+    "生成天气数据": {
+      "main": [[{ "node": "返回响应", "type": "main", "index": 0 }]]
+    }
+  }
+}

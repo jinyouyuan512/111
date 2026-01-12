@@ -1,0 +1,67 @@
+{
+  "name": "智慧旅游 - 多源数据聚合",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/aggregated-data",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "d1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "options": { "temperature": 0.6 }
+      },
+      "id": "d2",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [400, 500]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是河北红色旅游出行顾问。\n\n景点：{{ $json.spotName || '西柏坡纪念馆' }}\n当前时间：{{ new Date().toLocaleString('zh-CN') }}\n天气：{{ $json.weather || '晴，10-18°C' }}\n人流：{{ $json.crowdLevel || '中等' }}\n\n请给出简短的出行建议，返回JSON：\n{\n  \"visitAdvice\": \"一句话出行建议\",\n  \"bestTimeToday\": \"今日最佳游览时段\",\n  \"alerts\": [\"注意事项1\", \"注意事项2\"],\n  \"packingTips\": [\"携带物品1\", \"携带物品2\"]\n}\n\n只返回JSON。"
+      },
+      "id": "d3",
+      "name": "AI生成建议",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Webhook').first().json;\nconst spotName = input.spotName || '西柏坡纪念馆';\n\n// 景点数据\nconst spotData = {\n  '西柏坡纪念馆': { city: '石家庄', price: 0, openTime: '09:00-17:00', needReservation: true },\n  '狼牙山五壮士纪念地': { city: '保定', price: 80, openTime: '08:00-17:00', needReservation: false },\n  '白洋淀雁翎队纪念馆': { city: '保定', price: 40, openTime: '08:00-18:00', needReservation: false },\n  '冉庄地道战遗址': { city: '保定', price: 30, openTime: '08:30-17:30', needReservation: false },\n  '董存瑞烈士陵园': { city: '承德', price: 0, openTime: '08:00-17:00', needReservation: false },\n  '李大钊纪念馆': { city: '唐山', price: 0, openTime: '09:00-17:00', needReservation: true },\n  '八路军一二九师司令部旧址': { city: '邯郸', price: 0, openTime: '09:00-17:00', needReservation: false }\n};\n\nconst spot = spotData[spotName] || spotData['西柏坡纪念馆'];\n\n// 模拟天气数据\nconst hour = new Date().getHours();\nconst month = new Date().getMonth() + 1;\nlet weather = { condition: '晴', tempMin: 5, tempMax: 15, humidity: 50, aqi: 75 };\nif (month >= 6 && month <= 8) weather = { condition: '多云', tempMin: 22, tempMax: 32, humidity: 70, aqi: 85 };\nelse if (month >= 12 || month <= 2) weather = { condition: '晴', tempMin: -5, tempMax: 5, humidity: 40, aqi: 90 };\n\n// 模拟人流数据\nlet crowdLevel = 'low', waitTime = 5;\nif (hour >= 10 && hour <= 12) { crowdLevel = 'high'; waitTime = 30; }\nelse if (hour >= 14 && hour <= 16) { crowdLevel = 'medium'; waitTime = 15; }\n\n// 解析AI建议\nlet aiAdvice = { visitAdvice: '天气适宜，建议上午游览', bestTimeToday: '9:00-11:00', alerts: [], packingTips: ['身份证', '舒适鞋子'] };\ntry {\n  const aiText = $input.first().json.text || '';\n  const match = aiText.match(/\\{[\\s\\S]*\\}/);\n  if (match) aiAdvice = JSON.parse(match[0]);\n} catch (e) {}\n\n// 生成告警\nconst alerts = [...(aiAdvice.alerts || [])];\nif (weather.aqi > 100) alerts.push('空气质量较差，建议佩戴口罩');\nif (crowdLevel === 'high') alerts.push('当前人流较大，建议错峰出行');\nif (weather.condition.includes('雨')) alerts.push('有降雨，请携带雨具');\n\nreturn {\n  success: true,\n  spotName,\n  city: spot.city,\n  weather: {\n    condition: weather.condition,\n    temperature: { min: weather.tempMin, max: weather.tempMax },\n    humidity: weather.humidity,\n    aqi: weather.aqi,\n    aqiLevel: weather.aqi <= 50 ? '优' : weather.aqi <= 100 ? '良' : '轻度污染'\n  },\n  traffic: {\n    congestionLevel: hour >= 7 && hour <= 9 || hour >= 17 && hour <= 19 ? 'medium' : 'low',\n    estimatedDriveTime: '约1-2小时',\n    parkingAvailable: true\n  },\n  crowd: {\n    currentLevel: crowdLevel,\n    waitTime: waitTime + '分钟',\n    bestVisitTime: aiAdvice.bestTimeToday || '9:00-11:00',\n    peakHours: ['10:00-12:00', '14:00-16:00']\n  },\n  ticket: {\n    price: spot.price,\n    needReservation: spot.needReservation,\n    openTime: spot.openTime\n  },\n  nearby: {\n    restaurants: [{ name: '农家院', rating: 4.5, distance: '500m' }, { name: '红色餐厅', rating: 4.3, distance: '800m' }],\n    hotels: [{ name: '景区宾馆', price: 280, distance: '1km' }]\n  },\n  advice: {\n    visitAdvice: aiAdvice.visitAdvice,\n    packingTips: aiAdvice.packingTips || ['身份证', '舒适鞋子', '防晒用品']\n  },\n  alerts: [...new Set(alerts)],\n  generatedAt: new Date().toISOString()\n};"
+      },
+      "id": "d4",
+      "name": "聚合数据",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "d5",
+      "name": "返回结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "AI生成建议", "type": "main", "index": 0 }]] },
+    "OpenAI Chat Model": { "ai_languageModel": [[{ "node": "AI生成建议", "type": "ai_languageModel", "index": 0 }]] },
+    "AI生成建议": { "main": [[{ "node": "聚合数据", "type": "main", "index": 0 }]] },
+    "聚合数据": { "main": [[{ "node": "返回结果", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

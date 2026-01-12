@@ -1,0 +1,101 @@
+{
+  "name": "智慧旅游 - AI智能问答助手",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tourism/ai-chat",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      },
+      "id": "webhook-chat",
+      "name": "Webhook 问答请求",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 构建对话上下文\nconst body = $input.first().json.body || $input.first().json;\nconst question = body.question || '';\nconst sessionId = body.sessionId || 'default';\nconst userId = body.userId;\nconst context = body.context || {};\n\n// 河北红色旅游知识库\nconst knowledgeBase = {\n  '西柏坡': {\n    intro: '西柏坡纪念馆位于河北省石家庄市平山县，是解放战争时期中央工委、中共中央和解放军总部的所在地，被誉为\"新中国从这里走来\"。',\n    highlights: ['七届二中全会会址', '毛泽东旧居', '中央军委作战室', '西柏坡陈列馆'],\n    tickets: '免费参观，需提前在官方平台预约',\n    hours: '9:00-17:00，周一闭馆',\n    duration: '建议游览2-3小时',\n    transport: '从石家庄市区驾车约1.5小时，也可乘坐旅游专线',\n    tips: ['携带身份证', '穿舒适的鞋子', '建议请讲解员']\n  },\n  '狼牙山': {\n    intro: '狼牙山位于河北省保定市易县，因奇峰林立状若狼牙而得名。这里是狼牙山五壮士英雄事迹发生地。',\n    highlights: ['棋盘陀', '五壮士纪念塔', '五壮士陈列馆', '狼牙山玻璃栈道'],\n    tickets: '门票80元，索道往返100元',\n    hours: '8:00-17:00',\n    duration: '建议游览3-4小时',\n    transport: '从保定市区驾车约1小时',\n    tips: ['山路较陡注意安全', '建议携带饮用水', '恐高者慎选玻璃栈道']\n  },\n  '白洋淀': {\n    intro: '白洋淀是华北平原最大的淡水湖泊，素有\"华北明珠\"之称。抗战时期雁翎队在此创造了水上游击战传奇。',\n    highlights: ['雁翎队纪念馆', '荷花大观园', '嘎子村', '白洋淀湿地'],\n    tickets: '门票40元，船票另计',\n    hours: '8:00-18:00（夏季）',\n    duration: '建议游览半天到一天',\n    transport: '从保定市区驾车约40分钟',\n    tips: ['夏季荷花盛开最美', '可乘船游览', '品尝白洋淀炖杂鱼']\n  },\n  '塞罕坝': {\n    intro: '塞罕坝位于河北省承德市围场县，是世界上面积最大的人工林场。三代塞罕坝人用55年时间将荒原变成百万亩林海。',\n    highlights: ['塞罕坝展览馆', '望海楼', '七星湖湿地', '太阳湖'],\n    tickets: '门票130元（旺季）',\n    hours: '全天开放',\n    duration: '建议游览1-2天',\n    transport: '从承德市区驾车约4小时',\n    tips: ['夏季凉爽是避暑胜地', '秋季色彩斑斓最美', '注意防晒和保暖']\n  }\n};\n\n// 美食推荐\nconst foodGuide = {\n  '平山': ['缸炉烧饼', '平山抿须面', '农家炖菜'],\n  '保定': ['驴肉火烧', '白运章包子', '卤煮鸡'],\n  '白洋淀': ['白洋淀炖杂鱼', '荷叶鸡', '莲藕'],\n  '承德': ['承德烤全羊', '坝上莜面', '山野菜']\n};\n\n// 路线推荐\nconst routeTemplates = {\n  '一日游': {\n    title: '西柏坡红色经典一日游',\n    spots: ['西柏坡纪念馆', '七届二中全会会址', '毛泽东旧居'],\n    cost: 200,\n    tips: '上午参观纪念馆，中午品尝当地农家菜'\n  },\n  '两日游': {\n    title: '太行山红色生态两日游',\n    day1: ['西柏坡纪念馆', '石家庄解放纪念馆'],\n    day2: ['狼牙山五壮士纪念地', '易县清西陵'],\n    cost: 600,\n    tips: '第一天住平山县城，第二天前往保定方向'\n  },\n  '三日游': {\n    title: '河北红色文化深度游',\n    day1: ['西柏坡纪念馆'],\n    day2: ['白洋淀雁翎队纪念馆', '荷花大观园'],\n    day3: ['狼牙山五壮士纪念地'],\n    cost: 1000,\n    tips: '深度体验河北红色文化精华'\n  }\n};\n\nreturn {\n  question,\n  sessionId,\n  userId,\n  context,\n  knowledgeBase,\n  foodGuide,\n  routeTemplates\n};"
+      },
+      "id": "prepare-context",
+      "name": "准备对话上下文",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.deepseek.com/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Authorization", "value": "Bearer {{$env.DEEPSEEK_API_KEY}}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "model", "value": "deepseek-chat" },
+            { "name": "messages", "value": "=[{\"role\":\"system\",\"content\":\"你是冀小游，河北红色旅游智能助手。你热情友好，对河北红色旅游景点非常熟悉。\\n\\n知识库：\" + JSON.stringify($json.knowledgeBase) + \"\\n\\n美食：\" + JSON.stringify($json.foodGuide) + \"\\n\\n路线：\" + JSON.stringify($json.routeTemplates) + \"\\n\\n回答规则：1.亲切语气带emoji 2.简洁实用 3.景点提供门票时间交通 4.路线按天数推荐 5.不知道就说不清楚\"},{\"role\":\"user\",\"content\":\"\" + $json.question + \"\"}]" },
+            { "name": "temperature", "value": "0.7" },
+            { "name": "max_tokens", "value": "1000" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ai-chat",
+      "name": "AI 生成回答",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [750, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// 解析AI响应或使用规则引擎\nconst preparedData = $('准备对话上下文').first().json;\nconst question = (preparedData.question || '').toLowerCase();\nlet response;\n\ntry {\n  const aiResponse = $('AI 生成回答').first().json;\n  // DeepSeek API 响应格式\n  const content = aiResponse.choices?.[0]?.message?.content || '';\n  if (content) {\n    // 尝试解析JSON，如果失败则直接使用文本\n    try {\n      const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\n      if (jsonMatch) {\n        response = JSON.parse(jsonMatch[0]);\n      }\n    } catch (e) {\n      response = { answer: content, type: 'general' };\n    }\n    if (!response) {\n      response = { answer: content, type: 'general' };\n    }\n  }\n} catch (e) {\n  // AI失败，使用规则引擎\n}\n\nif (!response || !response.answer) {\n  // 规则引擎降级\n  const kb = preparedData.knowledgeBase;\n  const food = preparedData.foodGuide;\n  const routes = preparedData.routeTemplates;\n  \n  response = {\n    type: 'general',\n    suggestions: ['西柏坡有什么必看景点？', '推荐一日游路线', '附近有什么美食？']\n  };\n  \n  // 景点查询\n  for (const [spot, info] of Object.entries(kb)) {\n    if (question.includes(spot.toLowerCase())) {\n      if (question.includes('门票') || question.includes('票价')) {\n        response.answer = `🎫 ${spot}门票信息：${info.tickets}\\n\\n⏰ 开放时间：${info.hours}\\n\\n💡 小贴士：${info.tips.join('、')}`;\n        response.type = 'spot_info';\n      } else if (question.includes('怎么去') || question.includes('交通')) {\n        response.answer = `🚗 前往${spot}的交通方式：\\n${info.transport}\\n\\n⏱️ 建议游览时间：${info.duration}`;\n        response.type = 'spot_info';\n      } else {\n        response.answer = `🏛️ ${spot}\\n\\n${info.intro}\\n\\n✨ 必看景点：${info.highlights.join('、')}\\n\\n🎫 门票：${info.tickets}\\n⏰ 开放时间：${info.hours}\\n⏱️ 建议游览：${info.duration}`;\n        response.type = 'spot_info';\n      }\n      response.relatedSpots = [spot];\n      response.suggestions = [`${spot}门票多少钱？`, `${spot}怎么去？`, `${spot}附近有什么美食？`];\n      break;\n    }\n  }\n  \n  // 路线查询\n  if (!response.answer && (question.includes('路线') || question.includes('游') || question.includes('推荐'))) {\n    if (question.includes('一日') || question.includes('1天')) {\n      const r = routes['一日游'];\n      response.answer = `📍 ${r.title}\\n\\n🗺️ 行程安排：${r.spots.join(' → ')}\\n\\n💰 预计费用：约${r.cost}元/人\\n\\n💡 ${r.tips}`;\n    } else if (question.includes('两日') || question.includes('2天')) {\n      const r = routes['两日游'];\n      response.answer = `📍 ${r.title}\\n\\n🗺️ Day1：${r.day1.join(' → ')}\\n🗺️ Day2：${r.day2.join(' → ')}\\n\\n💰 预计费用：约${r.cost}元/人\\n\\n💡 ${r.tips}`;\n    } else {\n      const r = routes['三日游'];\n      response.answer = `📍 ${r.title}\\n\\n🗺️ Day1：${r.day1.join(' → ')}\\n🗺️ Day2：${r.day2.join(' → ')}\\n🗺️ Day3：${r.day3.join(' → ')}\\n\\n💰 预计费用：约${r.cost}元/人\\n\\n💡 ${r.tips}`;\n    }\n    response.type = 'route';\n    response.suggestions = ['一日游路线', '两日游路线', '三日游路线'];\n  }\n  \n  // 美食查询\n  if (!response.answer && (question.includes('美食') || question.includes('吃') || question.includes('特产'))) {\n    let foodAnswer = '🍜 河北红色旅游沿线特色美食推荐：\\n\\n';\n    for (const [area, foods] of Object.entries(food)) {\n      foodAnswer += `📍 ${area}：${foods.join('、')}\\n`;\n    }\n    foodAnswer += '\\n💰 人均消费：30-80元';\n    response.answer = foodAnswer;\n    response.type = 'food';\n    response.suggestions = ['平山有什么好吃的？', '白洋淀特色菜', '承德美食推荐'];\n  }\n  \n  // 天气查询\n  if (!response.answer && (question.includes('天气') || question.includes('穿'))) {\n    response.answer = '🌤️ 当前天气情况：\\n\\n河北地区今日晴，气温3-12℃\\n\\n👔 穿衣建议：\\n- 建议穿保暖外套和舒适运动鞋\\n- 山区早晚温差大，注意保暖\\n- 户外活动注意防晒\\n\\n☔ 出行提示：近期天气适宜出行';\n    response.type = 'weather';\n    response.suggestions = ['西柏坡天气怎么样？', '狼牙山适合什么季节去？', '塞罕坝最佳旅游时间'];\n  }\n  \n  // 默认回答\n  if (!response.answer) {\n    response.answer = '👋 您好！我是冀小游，河北红色旅游智能助手。\\n\\n我可以帮您：\\n🏛️ 查询景点信息（门票、开放时间、交通）\\n🗺️ 规划旅游路线\\n🍜 推荐当地美食\\n🌤️ 查询天气穿衣建议\\n\\n请问有什么可以帮您的？';\n    response.type = 'general';\n  }\n}\n\n// 确保有suggestions\nif (!response.suggestions) {\n  response.suggestions = ['西柏坡有什么必看景点？', '推荐一日游路线', '附近有什么美食？'];\n}\n\n// 添加会话ID\nresponse.sessionId = preparedData.sessionId;\nresponse.timestamp = new Date().toISOString();\n\nreturn response;"
+      },
+      "id": "process-response",
+      "name": "处理AI响应",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond-chat",
+      "name": "返回回答",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Webhook 问答请求": {
+      "main": [[{ "node": "准备对话上下文", "type": "main", "index": 0 }]]
+    },
+    "准备对话上下文": {
+      "main": [[{ "node": "AI 生成回答", "type": "main", "index": 0 }]]
+    },
+    "AI 生成回答": {
+      "main": [[{ "node": "处理AI响应", "type": "main", "index": 0 }]]
+    },
+    "处理AI响应": {
+      "main": [[{ "node": "返回回答", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

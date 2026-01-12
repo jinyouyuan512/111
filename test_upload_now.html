@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试作品上传 - 最小数据</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        button {
+            background: #409EFF;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #66b1ff;
+        }
+        button.secondary {
+            background: #67C23A;
+        }
+        button.secondary:hover {
+            background: #85ce61;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background: #f0f9ff;
+            border: 1px solid #409EFF;
+            color: #409EFF;
+        }
+        .error {
+            background: #fef0f0;
+            border: 1px solid #F56C6C;
+            color: #F56C6C;
+        }
+        .info {
+            background: #f4f4f5;
+            border: 1px solid #909399;
+            color: #606266;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        pre {
+            background: #f4f4f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 测试作品上传 - 只填必填字段</h1>
+        
+        <div class="info">
+            <strong>测试说明：</strong><br>
+            这个测试只填写必填字段（标题、描述、文件），不填写可选字段。<br>
+            如果成功，说明代码修复生效；如果失败，说明数据库表结构仍需修改。
+        </div>
+
+        <div class="form-group">
+            <label>作品标题 *</label>
+            <input type="text" id="title" value="测试作品标题" placeholder="请输入作品标题">
+        </div>
+
+        <div class="form-group">
+            <label>作品描述 *</label>
+            <textarea id="description" placeholder="请输入作品描述">这是一个测试作品的描述内容</textarea>
+        </div>
+
+        <div class="form-group">
+            <label>作品文件 URL *</label>
+            <input type="text" id="fileUrl" value="http://example.com/test.jpg" placeholder="请输入文件URL">
+        </div>
+
+        <button onclick="testMinimal()">测试提交（只填必填字段）</button>
+        <button class="secondary" onclick="testWithOptional()">测试提交（包含可选字段）</button>
+
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3002/api/creative';
+        const userId = 1; // 测试用户ID
+
+        async function testMinimal() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'none';
+
+            const data = {
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value,
+                files: [document.getElementById('fileUrl').value]
+                // 不包含任何可选字段
+            };
+
+            console.log('发送数据（只有必填字段）:', data);
+
+            try {
+                const response = await fetch(`${API_BASE}/designs`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-Id': userId.toString()
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                console.log('响应:', result);
+
+                if (response.ok && result.code === 200) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <strong>✓ 测试成功！</strong><br>
+                        作品ID: ${result.data.id}<br>
+                        标题: ${result.data.title}<br>
+                        状态: ${result.data.status}<br>
+                        <br>
+                        <strong>结论：代码修复生效，无需修改数据库！</strong>
+                    `;
+                } else {
+                    throw new Error(result.message || '提交失败');
+                }
+            } catch (error) {
+                console.error('错误:', error);
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <strong>✗ 测试失败</strong><br>
+                    错误信息: ${error.message}<br>
+                    <br>
+                    <strong>如果仍然是 Error 1048，需要修改数据库表结构。</strong><br>
+                    请在 MySQL 中执行 <code>一键修复.sql</code> 文件。
+                `;
+            }
+
+            resultDiv.style.display = 'block';
+        }
+
+        async function testWithOptional() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'none';
+
+            const data = {
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value,
+                files: [document.getElementById('fileUrl').value],
+                // 包含可选字段
+                categoryType: 1,
+                designConcept: '这是设计理念',
+                tags: '测试,作品'
+            };
+
+            console.log('发送数据（包含可选字段）:', data);
+
+            try {
+                const response = await fetch(`${API_BASE}/designs`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-Id': userId.toString()
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                console.log('响应:', result);
+
+                if (response.ok && result.code === 200) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <strong>✓ 测试成功！</strong><br>
+                        作品ID: ${result.data.id}<br>
+                        标题: ${result.data.title}<br>
+                        分类: ${result.data.categoryType}<br>
+                        标签: ${result.data.tags}<br>
+                        状态: ${result.data.status}
+                    `;
+                } else {
+                    throw new Error(result.message || '提交失败');
+                }
+            } catch (error) {
+                console.error('错误:', error);
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <strong>✗ 测试失败</strong><br>
+                    错误信息: ${error.message}
+                `;
+            }
+
+            resultDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

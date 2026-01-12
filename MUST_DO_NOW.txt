@@ -1,0 +1,49 @@
+========================================
+必须立即执行 - 修复创意上传
+========================================
+
+错误原因：数据库字段不允许 NULL 值
+
+解决方法：修改数据库表结构
+
+========================================
+步骤 1：打开 MySQL
+========================================
+
+使用 Navicat、MySQL Workbench 或命令行
+
+========================================
+步骤 2：执行 SQL（复制下面的内容）
+========================================
+
+USE jiyi_creative;
+
+ALTER TABLE design MODIFY COLUMN contest_id BIGINT NULL;
+ALTER TABLE design MODIFY COLUMN call_id BIGINT NULL;
+ALTER TABLE design MODIFY COLUMN category_type INT NULL;
+ALTER TABLE design MODIFY COLUMN design_concept TEXT NULL;
+ALTER TABLE design MODIFY COLUMN cover_image VARCHAR(500) NULL;
+ALTER TABLE design MODIFY COLUMN copyright_statement VARCHAR(500) NULL;
+ALTER TABLE design MODIFY COLUMN tags VARCHAR(500) NULL;
+ALTER TABLE design MODIFY COLUMN reject_reason VARCHAR(500) NULL;
+
+========================================
+步骤 3：重启创意服务
+========================================
+
+1. 停止当前服务（Ctrl+C）
+2. 重新启动：
+   cd backend/creative-service
+   mvn spring-boot:run
+
+========================================
+步骤 4：测试
+========================================
+
+1. 刷新浏览器（Ctrl+F5）
+2. 重新提交作品
+3. 应该成功！
+
+========================================
+完成！
+========================================

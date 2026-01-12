@@ -1,0 +1,92 @@
+========================================
+最终解决方案 - 必须执行
+========================================
+
+问题：数据库字段不允许 NULL，导致 Error 1048
+
+解决：必须在 MySQL 中执行以下命令
+
+========================================
+第 1 步：打开 MySQL
+========================================
+
+使用 Navicat、MySQL Workbench 或命令行
+
+========================================
+第 2 步：选择数据库
+========================================
+
+USE jiyi_creative;
+
+========================================
+第 3 步：逐条执行以下命令
+========================================
+
+重要：一条一条执行，不要一次性全部执行！
+
+ALTER TABLE design MODIFY COLUMN contest_id BIGINT NULL;
+
+-- 等待执行完成，看到 "Query OK" 后继续
+
+ALTER TABLE design MODIFY COLUMN call_id BIGINT NULL;
+
+-- 等待执行完成，看到 "Query OK" 后继续
+
+ALTER TABLE design MODIFY COLUMN category_type INT NULL;
+
+-- 等待执行完成，看到 "Query OK" 后继续
+
+ALTER TABLE design MODIFY COLUMN design_concept TEXT NULL;
+
+-- 等待执行完成，看到 "Query OK" 后继续
+
+ALTER TABLE design MODIFY COLUMN cover_image VARCHAR(500) NULL;
+
+-- 等待执行完成，看到 "Query OK" 后继续
+
+ALTER TABLE design MODIFY COLUMN copyright_statement VARCHAR(500) NULL;
+
+-- 等待执行完成，看到 "Query OK" 后继续
+
+ALTER TABLE design MODIFY COLUMN tags VARCHAR(500) NULL;
+
+-- 等待执行完成，看到 "Query OK" 后继续
+
+ALTER TABLE design MODIFY COLUMN reject_reason VARCHAR(500) NULL;
+
+-- 等待执行完成，看到 "Query OK" 后继续
+
+========================================
+第 4 步：验证修复
+========================================
+
+DESC design;
+
+-- 查看结果，以下字段的 Null 列应该显示 YES：
+-- contest_id
+-- call_id
+-- category_type
+-- design_concept
+-- cover_image
+-- copyright_statement
+-- tags
+-- reject_reason
+
+========================================
+第 5 步：刷新浏览器并测试
+========================================
+
+1. 按 Ctrl+F5 强制刷新浏览器
+2. 访问 http://localhost:3002/creative/upload
+3. 填写表单并提交
+4. 应该成功！
+
+========================================
+如果仍然失败
+========================================
+
+请截图发送：
+1. DESC design; 的执行结果
+2. 浏览器控制台的错误信息
+
+========================================

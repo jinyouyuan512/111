@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>检查创意上传错误</title>
+    <style>
+        body { font-family: Arial; max-width: 1200px; margin: 20px auto; padding: 20px; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        button { padding: 10px 20px; margin: 5px; background: #c41e3a; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #a0182f; }
+        pre { background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto; max-height: 500px; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>🔍 检查创意上传错误详情</h1>
+    
+    <div class="section">
+        <h3>测试配置</h3>
+        <p>前端端口: <input type="number" id="port" value="3002" style="width: 80px;" /></p>
+        <p>用户ID: <input type="number" id="userId" value="1" style="width: 80px;" /></p>
+        <button onclick="testMinimal()">测试最小请求</button>
+        <button onclick="testFull()">测试完整请求</button>
+        <button onclick="testWithoutOptional()">测试无可选字段</button>
+    </div>
+    
+    <div class="section">
+        <h3>请求数据</h3>
+        <pre id="requestData"></pre>
+    </div>
+    
+    <div class="section">
+        <h3>响应详情</h3>
+        <pre id="response"></pre>
+    </div>
+
+    <script>
+        async function sendRequest(data, description) {
+            const port = document.getElementById('port').value;
+            const userId = document.getElementById('userId').value;
+            const requestEl = document.getElementById('requestData');
+            const responseEl = document.getElementById('response');
+            
+            requestEl.textContent = `测试: ${description}\n\n` + JSON.stringify(data, null, 2);
+            responseEl.textContent = '发送请求中...';
+            
+            try {
+                const url = `http://localhost:${port}/api/creative/designs`;
+                console.log('URL:', url);
+                console.log('Data:', data);
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-Id': userId
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const contentType = response.headers.get('content-type');
+                let result;
+                
+                if (contentType && contentType.includes('application/json')) {
+                    result = await response.json();
+                } else {
+                    result = await response.text();
+                }
+                
+                let output = `HTTP 状态码: ${response.status} ${response.statusText}\n\n`;
+                output += `Content-Type: ${contentType}\n\n`;
+                
+                if (response.ok) {
+                    output += '✓ 请求成功\n\n';
+                    output += typeof result === 'string' ? result : JSON.stringify(result, null, 2);
+                    responseEl.innerHTML = `<span class="success">${output}</span>`;
+                } else {
+                    output += '✗ 请求失败\n\n';
+                    output += typeof result === 'string' ? result : JSON.stringify(result, null, 2);
+                    responseEl.innerHTML = `<span class="error">${output}</span>`;
+                }
+                
+                console.log('Response:', result);
+            } catch (error) {
+                const output = `✗ 请求错误\n\n${error.message}\n\n${error.stack}`;
+                responseEl.innerHTML = `<span class="error">${output}</span>`;
+                console.error('Error:', error);
+            }
+        }
+
+        function testMinimal() {
+            const data = {
+                title: "测试作品",
+                categoryType: 1,
+                description: "这是一个测试作品描述，用于测试创意上传功能。",
+                files: ["http://localhost:8083/uploads/test.jpg"]
+            };
+            sendRequest(data, '最小请求（仅必填字段）');
+        }
+
+        function testWithoutOptional() {
+            const data = {
+                title: "测试作品 - 无可选字段",
+                categoryType: 1,
+                description: "这是一个测试作品描述，不包含任何可选字段。",
+                files: [
+                    "http://localhost:8083/uploads/test1.jpg",
+                    "http://localhost:8083/uploads/test2.jpg"
+                ]
+            };
+            sendRequest(data, '无可选字段');
+        }
+
+        function testFull() {
+            const data = {
+                title: "测试作品 - 完整数据",
+                categoryType: 1,
+                description: "这是一个完整的测试作品描述，包含所有字段。",
+                designConcept: "设计理念：通过现代简约的设计风格传达红色文化精神。",
+                coverImage: "http://localhost:8083/uploads/cover.jpg",
+                files: [
+                    "http://localhost:8083/uploads/file1.jpg",
+                    "http://localhost:8083/uploads/file2.jpg"
+                ],
+                copyrightStatement: "本作品版权归作者所有，仅供学习交流使用。",
+                tags: "红色文化,海报设计,革命历史"
+            };
+            sendRequest(data, '完整请求（包含所有字段）');
+        }
+
+        // 自动测试最小请求
+        window.onload = () => {
+            console.log('页面加载完成，准备测试');
+        };
+    </script>
+</body>
+</html>
