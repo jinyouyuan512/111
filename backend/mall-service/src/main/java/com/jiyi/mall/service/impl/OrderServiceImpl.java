@@ -52,7 +52,17 @@ public class OrderServiceImpl implements OrderService {
         
         wrapper.orderByDesc(Order::getCreateTime);
         
-        return orderMapper.selectPage(orderPage, wrapper);
+        Page<Order> result = orderMapper.selectPage(orderPage, wrapper);
+        
+        // 为每个订单查询订单项
+        for (Order order : result.getRecords()) {
+            LambdaQueryWrapper<OrderItem> itemWrapper = new LambdaQueryWrapper<>();
+            itemWrapper.eq(OrderItem::getOrderId, order.getId());
+            List<OrderItem> items = orderItemMapper.selectList(itemWrapper);
+            order.setItems(items);
+        }
+        
+        return result;
     }
     
     @Override

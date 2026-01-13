@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>测试历史行程API</title>
+    <meta charset="utf-8">
+</head>
+<body>
+    <h1>测试历史行程 API</h1>
+    <button onclick="testAPI()">点击测试</button>
+    <pre id="result" style="background:#f0f0f0;padding:20px;margin-top:20px;"></pre>
+    
+    <script>
+    async function testAPI() {
+        const result = document.getElementById('result');
+        result.textContent = '请求中...';
+        
+        try {
+            const response = await fetch('http://localhost:8082/api/tourism/smart-route/my-plans');
+            const data = await response.json();
+            result.textContent = JSON.stringify(data, null, 2);
+        } catch (e) {
+            result.textContent = '错误: ' + e.message;
+        }
+    }
+    </script>
+</body>
+</html>

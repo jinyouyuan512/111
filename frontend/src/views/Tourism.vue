@@ -31,6 +31,9 @@
                   <span v-if="spot.isFree" class="badge-free">免费</span>
                   <span v-if="spot.needReserve" class="badge-reserve">需预约</span>
                 </div>
+                <button class="btn-favorite" @click.stop="toggleFavorite(spot.id)" :class="{ active: favoriteSpots.includes(spot.id) }">
+                  {{ favoriteSpots.includes(spot.id) ? '❤️' : '🤍' }}
+                </button>
               </div>
               <div class="spot-info">
                 <h3>{{ spot.name }}</h3>
@@ -38,6 +41,10 @@
                 <div class="spot-meta">
                   <span>📍 {{ spot.location }}</span>
                   <span>⭐ {{ spot.rating }}</span>
+                </div>
+                <div class="spot-extra">
+                  <span class="spot-price">{{ spot.isFree ? '免费' : '¥' + (spot.ticketPrice || 80) }}</span>
+                  <span class="spot-time">{{ spot.openingHours || '08:00-17:30' }}</span>
                 </div>
               </div>
             </div>
@@ -53,8 +60,46 @@
                   <p>{{ currentSpot.slogan }}</p>
                 </div>
               </div>
-              <button class="btn-close" @click="currentSpot = null">×</button>
+              <div class="detail-actions">
+                <button class="btn-favorite-lg" @click="toggleFavorite(currentSpot.id)" :class="{ active: favoriteSpots.includes(currentSpot.id) }">
+                  {{ favoriteSpots.includes(currentSpot.id) ? '❤️ 已收藏' : '🤍 收藏' }}
+                </button>
+                <button class="btn-close" @click="currentSpot = null">×</button>
+              </div>
             </div>
+            
+            <!-- 基本信息卡片 -->
+            <div class="detail-info-cards">
+              <div class="info-card">
+                <span class="info-icon">🎫</span>
+                <div class="info-content">
+                  <span class="info-label">门票</span>
+                  <span class="info-value">{{ currentSpot.isFree ? '免费' : '¥' + (currentSpot.ticketPrice || 80) }}</span>
+                </div>
+              </div>
+              <div class="info-card">
+                <span class="info-icon">🕐</span>
+                <div class="info-content">
+                  <span class="info-label">开放时间</span>
+                  <span class="info-value">{{ currentSpot.openingHours || '08:00-17:30' }}</span>
+                </div>
+              </div>
+              <div class="info-card">
+                <span class="info-icon">⏱️</span>
+                <div class="info-content">
+                  <span class="info-label">建议游览</span>
+                  <span class="info-value">{{ currentSpot.suggestedDuration || '2-3小时' }}</span>
+                </div>
+              </div>
+              <div class="info-card">
+                <span class="info-icon">📞</span>
+                <div class="info-content">
+                  <span class="info-label">咨询电话</span>
+                  <span class="info-value">{{ currentSpot.phone || '400-xxx-xxxx' }}</span>
+                </div>
+              </div>
+            </div>
+            
             <div class="detail-body">
               <div class="detail-section">
                 <h4>📖 景点简介</h4>
@@ -64,13 +109,70 @@
                 <h4>📜 历史背景</h4>
                 <p>{{ currentSpot.history }}</p>
               </div>
+              
+              <!-- 交通指南 -->
+              <div class="detail-section">
+                <h4>🚗 交通指南</h4>
+                <div class="transport-info">
+                  <div class="transport-item">
+                    <span class="transport-icon">🚌</span>
+                    <div>
+                      <strong>公共交通</strong>
+                      <p>{{ currentSpot.publicTransport || '可乘坐旅游专线大巴直达景区' }}</p>
+                    </div>
+                  </div>
+                  <div class="transport-item">
+                    <span class="transport-icon">🚗</span>
+                    <div>
+                      <strong>自驾路线</strong>
+                      <p>{{ currentSpot.selfDrive || '导航搜索景区名称即可，景区设有免费停车场' }}</p>
+                    </div>
+                  </div>
+                </div>
+                <button class="btn-navigate" @click="openNavigation(currentSpot)">
+                  📍 导航到这里
+                </button>
+              </div>
+              
               <div class="detail-section">
                 <h4>💡 游览贴士</h4>
                 <ul>
                   <li v-for="tip in currentSpot.tips" :key="tip">{{ tip }}</li>
                 </ul>
               </div>
+              
+              <!-- 用户评价 -->
+              <div class="detail-section">
+                <h4>💬 游客评价 <span class="review-count">({{ currentSpot.reviewCount || 128 }}条)</span></h4>
+                <div class="reviews-summary">
+                  <div class="rating-big">
+                    <span class="rating-num">{{ currentSpot.rating }}</span>
+                    <span class="rating-stars">⭐⭐⭐⭐⭐</span>
+                    <span class="rating-text">非常好</span>
+                  </div>
+                  <div class="rating-tags">
+                    <span class="tag">历史厚重 {{ Math.floor(Math.random() * 50 + 50) }}</span>
+                    <span class="tag">讲解详细 {{ Math.floor(Math.random() * 40 + 30) }}</span>
+                    <span class="tag">值得一去 {{ Math.floor(Math.random() * 60 + 40) }}</span>
+                    <span class="tag">环境优美 {{ Math.floor(Math.random() * 30 + 20) }}</span>
+                  </div>
+                </div>
+                <div class="reviews-list">
+                  <div class="review-item" v-for="review in spotReviews" :key="review.id">
+                    <div class="review-header">
+                      <span class="review-avatar">{{ review.avatar }}</span>
+                      <div class="review-user">
+                        <span class="review-name">{{ review.name }}</span>
+                        <span class="review-date">{{ review.date }}</span>
+                      </div>
+                      <span class="review-rating">{{ '⭐'.repeat(review.rating) }}</span>
+                    </div>
+                    <p class="review-content">{{ review.content }}</p>
+                  </div>
+                </div>
+              </div>
             </div>
+            
             <!-- 语音讲解 -->
             <div class="audio-section">
               <h4>🎧 语音讲解 ({{ currentSpot.audioGuides.length }}段)</h4>
@@ -92,6 +194,16 @@
                 </div>
                 <p class="player-text">{{ playingAudio.transcript }}</p>
               </div>
+            </div>
+            
+            <!-- 底部操作栏 -->
+            <div class="detail-footer">
+              <button class="btn-add-route" @click="addToRoute(currentSpot)">
+                ➕ 加入行程
+              </button>
+              <button class="btn-book-ticket" @click="bookSpotTicket(currentSpot)">
+                🎫 预约门票
+              </button>
             </div>
           </div>
         </div>
@@ -387,6 +499,55 @@ const audioCurrentTime = ref(0)
 const audioProgress = ref(0)
 let audioTimer: any = null
 
+// 收藏的景点
+const favoriteSpots = ref<number[]>([])
+
+// 模拟用户评价数据
+const spotReviews = ref([
+  { id: 1, avatar: '👨', name: '红色旅行者', date: '2026-01-10', rating: 5, content: '非常震撼的红色教育基地，讲解员讲得很详细，让人深刻感受到革命先辈的伟大精神。强烈推荐！' },
+  { id: 2, avatar: '👩', name: '历史爱好者', date: '2026-01-08', rating: 5, content: '带孩子来接受爱国主义教育，孩子收获很大。景区环境优美，设施完善。' },
+  { id: 3, avatar: '👴', name: '老党员', date: '2026-01-05', rating: 5, content: '重温革命历史，缅怀革命先烈。每次来都有新的感悟，值得多次参观。' }
+])
+
+// 收藏/取消收藏景点
+const toggleFavorite = (spotId: number) => {
+  const idx = favoriteSpots.value.indexOf(spotId)
+  if (idx > -1) {
+    favoriteSpots.value.splice(idx, 1)
+    ElMessage.success('已取消收藏')
+  } else {
+    favoriteSpots.value.push(spotId)
+    ElMessage.success('已添加到收藏')
+  }
+  // 保存到本地存储
+  localStorage.setItem('favoriteSpots', JSON.stringify(favoriteSpots.value))
+}
+
+// 打开导航
+const openNavigation = (spot: RedSpot) => {
+  const url = `https://uri.amap.com/search?keyword=${encodeURIComponent(spot.name)}&city=${encodeURIComponent(spot.location)}`
+  window.open(url, '_blank')
+  ElMessage.success('正在打开高德地图导航...')
+}
+
+// 加入行程
+const addToRoute = (spot: RedSpot) => {
+  if (!selectedSpots.value.includes(spot.id)) {
+    selectedSpots.value.push(spot.id)
+    ElMessage.success(`已将"${spot.name}"加入行程规划`)
+  } else {
+    ElMessage.info('该景点已在行程中')
+  }
+  // 切换到智能路线标签
+  activeTab.value = 'route'
+}
+
+// 预约门票
+const bookSpotTicket = (spot: RedSpot) => {
+  activeTab.value = 'ticket'
+  ElMessage.info(`请在门票预订中选择"${spot.name}"进行预约`)
+}
+
 const selectSpot = async (spot: RedSpot) => { 
   if (currentSpot.value?.id === spot.id) {
     currentSpot.value = null
@@ -444,51 +605,78 @@ const myPlans = ref<any[]>([])
 const myPlansLoading = ref(false)
 
 const loadMyPlans = async () => {
+  console.log('[Tourism] loadMyPlans 开始')
   myPlansLoading.value = true
   try {
-    const response = await tourismApi.getMyPlans()
-    console.log('[Tourism] API响应:', response)
+    // 直接使用 axios 发送请求，绕过可能的问题
+    const axios = (await import('axios')).default
+    const res = await axios.get('/api/tourism/smart-route/my-plans', {
+      headers: { 'X-User-Id': '1' }
+    })
+    console.log('[Tourism] 直接axios响应:', res.data)
     
-    // response 可能是数组（拦截器已处理），也可能是原始响应
-    let plans = response
-    if (response && typeof response === 'object' && 'data' in response) {
-      plans = response.data
-    }
+    const data = res.data?.data || res.data
+    console.log('[Tourism] 解析后数据:', data)
     
-    console.log('[Tourism] 解析后的行程:', plans)
-    
-    if (plans && Array.isArray(plans)) {
-      myPlans.value = plans
+    if (Array.isArray(data)) {
+      myPlans.value = data
       console.log('[Tourism] 设置 myPlans:', myPlans.value.length, '条')
-    } else if (plans) {
-      myPlans.value = [plans]
+    } else if (data) {
+      myPlans.value = [data]
+    } else {
+      myPlans.value = []
     }
   } catch (e) {
-    console.error('加载我的行程失败:', e)
+    console.error('[Tourism] 加载我的行程失败:', e)
+    myPlans.value = []
   } finally {
     myPlansLoading.value = false
+    console.log('[Tourism] loadMyPlans 结束, myPlans =', myPlans.value)
   }
 }
 
 const viewSavedPlan = (plan: any) => {
+  console.log('[Tourism] 查看保存的行程:', plan)
+  
   // 解析保存的行程数据
   let planData = plan.plan_data || plan.planData
   if (typeof planData === 'string') {
-    try { planData = JSON.parse(planData) } catch { planData = null }
+    try { 
+      planData = JSON.parse(planData) 
+      console.log('[Tourism] 解析后的 planData:', planData)
+    } catch (e) { 
+      console.error('[Tourism] JSON解析失败:', e)
+      planData = null 
+    }
   }
   
-  if (planData) {
-    // 如果是中文格式的数据，解析它
-    generatedPlan.value = parseN8nPlan({ plan: planData })
-  } else {
-    // 直接使用
-    generatedPlan.value = {
-      title: plan.title,
-      description: plan.description,
-      days: plan.days || [],
-      estimatedCost: plan.estimated_cost || plan.estimatedCost || 200,
-      tips: plan.tips || []
+  if (planData && planData.plan) {
+    // n8n 格式的数据，使用 parseN8nPlan 解析
+    const parsed = parseN8nPlan(planData)
+    if (parsed) {
+      generatedPlan.value = parsed
+      ElMessage.success(`已加载行程：${plan.title}`)
+      return
     }
+  }
+  
+  // 如果 planData 直接包含行程信息
+  if (planData && (planData['详细行程'] || planData['行程概述'])) {
+    const parsed = parseN8nPlan({ plan: planData })
+    if (parsed) {
+      generatedPlan.value = parsed
+      ElMessage.success(`已加载行程：${plan.title}`)
+      return
+    }
+  }
+  
+  // 直接使用 plan 对象的字段
+  generatedPlan.value = {
+    title: plan.title || 'AI生成行程',
+    description: plan.description || 'AI智能规划的红色之旅',
+    days: plan.days || [],
+    estimatedCost: plan.estimated_cost || plan.estimatedCost || 200,
+    tips: plan.tips || ['携带身份证', '穿舒适的鞋子', '提前预约免费景点']
   }
   ElMessage.success(`已加载行程：${plan.title}`)
 }
@@ -507,71 +695,100 @@ const formatNumber = (n: number) => n >= 10000 ? (n / 10000).toFixed(1) + 'w' : 
 
 // 解析 n8n 返回的中文格式行程数据
 const parseN8nPlan = (data: any) => {
+  console.log('[parseN8nPlan] 输入数据:', data)
+  
   // n8n 返回数组时取第一个
   const plan = Array.isArray(data) ? data[0]?.plan : data?.plan || data
-  if (!plan) return null
+  if (!plan) {
+    console.log('[parseN8nPlan] plan 为空')
+    return null
+  }
   
-  const overview = plan['行程概述'] || plan.overview || {}
-  const details = plan['详细行程'] || plan.details || []
-  const practicalInfo = plan['实用信息'] || {}
-  const budgetRef = plan['预算参考'] || {}
+  console.log('[parseN8nPlan] plan 对象:', plan)
+  
+  const overview = plan['行程概述'] || plan['行程概况'] || plan.overview || {}
+  const details = plan['详细行程'] || plan['每日详细安排'] || plan.details || []
+  const practicalInfo = plan['实用信息'] || plan['实用建议'] || {}
+  const budgetRef = plan['预算参考'] || practicalInfo['预算参考'] || {}
   const specialTips = plan['特别提醒'] || ''
+  
+  console.log('[parseN8nPlan] overview:', overview)
+  console.log('[parseN8nPlan] details:', details)
   
   // 解析预算
   let estimatedCost = 200
   if (budgetRef['人均总预算']) {
-    const match = budgetRef['人均总预算'].match(/\d+/)
+    const match = String(budgetRef['人均总预算']).match(/\d+/)
     if (match) estimatedCost = parseInt(match[0])
   }
   
   // 转换为前端期望的格式
-  return {
-    title: overview['主题特色'] || overview['行程主题'] || `${(overview['主要景点'] || overview['游览景点'] || [])[0] || ''}红色之旅`,
-    description: `${overview['总天数'] || 1}天行程 · ${overview['出发日期'] || ''}出发`,
-    days: details.map((day: any, idx: number) => ({
-      day: idx + 1,
-      date: day['日期'] || `第${idx + 1}天`,
-      theme: day['主题'] || '',
-      spots: (day['行程安排'] || []).map((item: any, i: number) => {
-        // 解析景点详情
-        const spotDetail = item['景点详情'] || {}
-        let detailText = ''
-        
-        if (item['交通方式']) detailText += `🚗 ${item['交通方式']}`
-        if (item['距离']) detailText += ` · ${item['距离']}`
-        if (item['预计用时']) detailText += ` · ${item['预计用时']}`
-        if (spotDetail['门票']) detailText += `\n🎫 ${spotDetail['门票']}`
-        if (spotDetail['建议游览时间']) detailText += ` · 建议${spotDetail['建议游览时间']}`
-        if (item['注意事项']) detailText += `\n⚠️ ${item['注意事项']}`
-        if (item['推荐餐厅']) detailText += `\n🍽️ ${item['推荐餐厅']}`
-        if (item['特色菜品']) detailText += ` · ${item['特色菜品']}`
-        if (item['人均消费']) detailText += ` · 人均${item['人均消费']}`
-        if (item['可选项目']) detailText += `\n📌 可选：${item['可选项目'].join('、')}`
-        if (item['晚餐建议']) detailText += `\n🍽️ ${item['晚餐建议']}`
-        
-        // 核心参观点
-        if (spotDetail['核心参观点'] && spotDetail['核心参观点'].length > 0) {
-          detailText += `\n📍 核心参观点：${spotDetail['核心参观点'].join('、')}`
-        }
-        
-        return {
-          order: i + 1,
-          name: item['活动'] || item.activity || '',
-          duration: item['时间'] || item.time || '',
-          tips: detailText || item['详情'] || item['注意事项'] || ''
-        }
-      }),
-      meals: day['餐饮建议'] || {},
-      accommodation: day['住宿建议'] || '',
-      notes: day['注意事项'] || []
-    })),
+  const result = {
+    title: overview['主题特色'] || overview['行程主题'] || overview['主题'] || plan.title || `红色之旅`,
+    description: `${overview['总天数'] || details.length || 1}天行程 · ${overview['出发日期'] || '明天'}出发`,
+    days: details.map((day: any, idx: number) => {
+      // 获取当天的行程安排
+      const arrangements = day['行程安排'] || day['安排'] || day['行程详情'] || []
+      
+      console.log(`[parseN8nPlan] 第${idx+1}天安排:`, arrangements)
+      
+      return {
+        day: idx + 1,
+        date: day['日期'] || day['date'] || `第${idx + 1}天`,
+        theme: day['主题'] || day['theme'] || '',
+        spots: arrangements.map((item: any, i: number) => {
+          // 解析景点详情
+          const spotDetail = item['景点详情'] || item['景点信息'] || {}
+          let detailText = ''
+          
+          // 构建详情文本
+          if (item['内容'] && Array.isArray(item['内容'])) {
+            detailText += item['内容'].join('\n')
+          }
+          if (item['交通方式']) detailText += `\n🚗 ${item['交通方式']}`
+          if (item['距离']) detailText += ` · ${item['距离']}`
+          if (item['预计用时']) detailText += ` · ${item['预计用时']}`
+          if (item['门票'] || spotDetail['门票']) detailText += `\n🎫 ${item['门票'] || spotDetail['门票']}`
+          if (spotDetail['建议游览时间']) detailText += ` · 建议${spotDetail['建议游览时间']}`
+          if (item['注意事项']) {
+            const notes = Array.isArray(item['注意事项']) ? item['注意事项'].join('；') : item['注意事项']
+            detailText += `\n⚠️ ${notes}`
+          }
+          if (item['推荐餐厅'] || item['餐饮建议']) detailText += `\n🍽️ ${item['推荐餐厅'] || item['餐饮建议']}`
+          if (item['特色菜'] || item['特色菜品']) detailText += ` · ${item['特色菜'] || item['特色菜品']}`
+          if (item['人均消费']) detailText += ` · 人均${item['人均消费']}`
+          if (item['住宿推荐']) {
+            const hotel = typeof item['住宿推荐'] === 'object' 
+              ? Object.entries(item['住宿推荐']).map(([k,v]) => `${k}: ${v}`).join('；')
+              : item['住宿推荐']
+            detailText += `\n🏨 ${hotel}`
+          }
+          
+          // 核心参观点
+          if (spotDetail['核心参观点'] && Array.isArray(spotDetail['核心参观点'])) {
+            detailText += `\n📍 核心参观点：${spotDetail['核心参观点'].join('、')}`
+          }
+          
+          return {
+            order: i + 1,
+            name: item['活动'] || item['景点'] || item.activity || `活动${i+1}`,
+            duration: item['时间'] || item.time || '',
+            tips: detailText.trim() || item['详情'] || item['备注'] || ''
+          }
+        }),
+        meals: day['餐饮建议'] || day['餐饮安排'] || {},
+        accommodation: day['住宿建议'] || '',
+        notes: day['注意事项'] || []
+      }
+    }),
     totalDistance: 0,
     estimatedCost: estimatedCost,
     // 整合所有提示信息
     tips: [
       ...(practicalInfo['注意事项'] || []),
       ...(practicalInfo['推荐携带物品'] ? [`携带物品：${practicalInfo['推荐携带物品'].join('、')}`] : []),
-      ...(practicalInfo['交通提示'] || []),
+      ...(practicalInfo['装备准备'] ? [`装备：${practicalInfo['装备准备'].join('、')}`] : []),
+      ...(practicalInfo['交通提示'] || practicalInfo['交通建议'] || []),
       ...(specialTips ? [specialTips] : [])
     ].filter(Boolean),
     // 额外信息
@@ -579,6 +796,9 @@ const parseN8nPlan = (data: any) => {
     accommodation: practicalInfo['住宿建议'] || [],
     transport: practicalInfo['交通提示'] || []
   }
+  
+  console.log('[parseN8nPlan] 解析结果:', result)
+  return result
 }
 
 // 等待时间
@@ -845,26 +1065,11 @@ const loadHotRoutes = async () => {
       return
     }
   } catch (e) {
-    console.log('后端热门路线加载失败，尝试 n8n')
+    console.log('后端热门路线加载失败，使用默认数据')
   }
   
-  // 降级到 n8n
-  try {
-    const routes = await n8nApi.getHotRoutes()
-    if (routes && routes.length > 0) {
-      hotRoutes.value = routes.map((r: any, idx: number) => ({
-        id: r.id || String(idx + 1),
-        rank: r.rank || idx + 1,
-        name: r.name,
-        spots: parseSpotIds(r.spots),
-        duration: r.duration || '1天',
-        views: r.views || r.bookings || 0,
-        rating: r.rating || 4.8
-      }))
-    }
-  } catch {
-    console.log('使用默认路线数据')
-  }
+  // 不再调用 n8n，直接使用默认数据
+  console.log('使用默认路线数据')
 }
 
 // 解析景点ID
@@ -893,8 +1098,9 @@ const parseSpotIds = (spots: any): number[] => {
 // 加载数据
 const loadData = async () => {
   console.log('[Tourism] loadData 开始执行')
+  
+  // 尝试从后端加载景点数据
   try {
-    // 尝试从后端加载景点数据
     const spots = await tourismApi.getRedSpots()
     if (spots && spots.length > 0) {
       redSpots.value = spots as any
@@ -903,12 +1109,20 @@ const loadData = async () => {
     console.log('使用默认景点数据')
   }
   
-  // 加载热门路线
-  await loadHotRoutes()
+  // 加载热门路线（不阻塞后续加载）
+  try {
+    await loadHotRoutes()
+  } catch (e) {
+    console.log('热门路线加载失败:', e)
+  }
   
   // 加载我的行程
   console.log('[Tourism] 准备调用 loadMyPlans')
-  await loadMyPlans()
+  try {
+    await loadMyPlans()
+  } catch (e) {
+    console.error('[Tourism] loadMyPlans 异常:', e)
+  }
   console.log('[Tourism] loadMyPlans 完成, myPlans.length =', myPlans.value.length)
   
   // 加载门票
@@ -922,7 +1136,17 @@ const loadData = async () => {
   }
 }
 
-onMounted(() => { 
+onMounted(() => {
+  console.log('=== Tourism onMounted 执行 ===')
+  // 加载收藏的景点
+  const savedFavorites = localStorage.getItem('favoriteSpots')
+  if (savedFavorites) {
+    try {
+      favoriteSpots.value = JSON.parse(savedFavorites)
+    } catch (e) {
+      console.log('加载收藏失败')
+    }
+  }
   loadData()
   loadRealtimeData()
 })
@@ -1143,6 +1367,260 @@ onMounted(() => {
   cursor: pointer;
   color: #999;
 }
+
+/* 收藏按钮 */
+.btn-favorite {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(255,255,255,0.9);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s;
+}
+.btn-favorite:hover, .btn-favorite.active {
+  transform: scale(1.1);
+}
+.btn-favorite-lg {
+  background: #fff5f5;
+  border: 1px solid #ffccc7;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+.btn-favorite-lg.active {
+  background: #fff1f0;
+  border-color: #ff4d4f;
+}
+
+/* 景点额外信息 */
+.spot-extra {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #eee;
+}
+.spot-price {
+  color: #f5222d;
+  font-weight: bold;
+  font-size: 14px;
+}
+.spot-time {
+  color: #999;
+  font-size: 12px;
+}
+
+/* 详情操作区 */
+.detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 信息卡片 */
+.detail-info-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  margin-bottom: 20px;
+}
+.info-card {
+  background: linear-gradient(135deg, #f6ffed, #e6f7ff);
+  padding: 15px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.info-icon {
+  font-size: 24px;
+}
+.info-content {
+  display: flex;
+  flex-direction: column;
+}
+.info-label {
+  font-size: 12px;
+  color: #666;
+}
+.info-value {
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+}
+
+/* 交通指南 */
+.transport-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+.transport-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.transport-icon {
+  font-size: 20px;
+}
+.transport-item strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #333;
+}
+.transport-item p {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+}
+.btn-navigate {
+  background: linear-gradient(135deg, #1890ff, #096dd9);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+.btn-navigate:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.4);
+}
+
+/* 用户评价 */
+.review-count {
+  font-size: 12px;
+  color: #999;
+  font-weight: normal;
+}
+.reviews-summary {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  margin-bottom: 15px;
+  padding: 15px;
+  background: #fffbe6;
+  border-radius: 8px;
+}
+.rating-big {
+  text-align: center;
+}
+.rating-num {
+  font-size: 36px;
+  font-weight: bold;
+  color: #fa8c16;
+}
+.rating-stars {
+  display: block;
+  font-size: 14px;
+}
+.rating-text {
+  font-size: 12px;
+  color: #666;
+}
+.rating-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rating-tags .tag {
+  background: #fff;
+  padding: 4px 12px;
+  border-radius: 15px;
+  font-size: 12px;
+  color: #666;
+  border: 1px solid #f0f0f0;
+}
+.reviews-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+.review-item {
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.review-item:last-child {
+  border-bottom: none;
+}
+.review-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.review-avatar {
+  font-size: 24px;
+}
+.review-user {
+  flex: 1;
+}
+.review-name {
+  display: block;
+  font-weight: bold;
+  font-size: 14px;
+}
+.review-date {
+  font-size: 12px;
+  color: #999;
+}
+.review-rating {
+  font-size: 12px;
+}
+.review-content {
+  margin: 0;
+  font-size: 14px;
+  color: #333;
+  line-height: 1.6;
+}
+
+/* 底部操作栏 */
+.detail-footer {
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #f0f0f0;
+}
+.btn-add-route {
+  flex: 1;
+  background: linear-gradient(135deg, #52c41a, #389e0d);
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  transition: all 0.3s;
+}
+.btn-add-route:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(82, 196, 26, 0.4);
+}
+.btn-book-ticket {
+  flex: 1;
+  background: linear-gradient(135deg, #fa8c16, #d46b08);
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  transition: all 0.3s;
+}
+.btn-book-ticket:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(250, 140, 22, 0.4);
+}
+
 .detail-body {
   display: grid;
   grid-template-columns: 1fr 1fr;

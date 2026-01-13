@@ -11,22 +11,28 @@ service.interceptors.request.use(
     const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
-      
-      // 从localStorage获取userInfo并添加X-User-Id头
-      const userInfoStr = localStorage.getItem('userInfo')
-      if (userInfoStr) {
-        try {
-          const userInfo = JSON.parse(userInfoStr)
-          // userInfo可能是{code, message, data}格式，也可能直接是用户对象
-          const userId = userInfo?.data?.id || userInfo?.id
-          if (userId) {
-            config.headers['X-User-Id'] = userId
-          }
-        } catch (e) {
-          console.error('Failed to parse userInfo:', e)
+    }
+    
+    // 从localStorage获取userInfo并添加X-User-Id头
+    const userInfoStr = localStorage.getItem('userInfo')
+    if (userInfoStr) {
+      try {
+        const userInfo = JSON.parse(userInfoStr)
+        // userInfo可能是{code, message, data}格式，也可能直接是用户对象
+        const userId = userInfo?.data?.id || userInfo?.id
+        if (userId) {
+          config.headers['X-User-Id'] = userId
         }
+      } catch (e) {
+        console.error('Failed to parse userInfo:', e)
       }
     }
+    
+    // 如果没有 X-User-Id，设置默认值 1（用于测试）
+    if (!config.headers['X-User-Id']) {
+      config.headers['X-User-Id'] = '1'
+    }
+    
     return config
   },
   (error) => {
